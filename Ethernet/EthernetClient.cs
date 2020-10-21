@@ -35,39 +35,47 @@ namespace VectronsLibrary.Ethernet
                 Disconnect();
             }
 
+            IPEndPoint endpoint = null;
             try
             {
-                var endpoint = new IPEndPoint(IPAddress.Parse(ip), port);
-                logger.LogInformation($"Opening connection to {endpoint}");
+                endpoint = new IPEndPoint(IPAddress.Parse(ip), port);
+                logger.LogInformation("Opening connection to {0}", endpoint);
                 client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, protocolType);
                 client.BeginConnect(endpoint, new AsyncCallback(ConnectCallback), client);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, $"Failed to connect to {client.RemoteEndPoint.ToString()}");
+                logger.LogError(ex, "Failed to connect to {0}", endpoint);
             }
         }
 
         public void Disconnect()
         {
-            if (client == null)
+            try
             {
-                logger.LogDebug("No connection to close");
-                return;
-            }
+                if (client == null)
+                {
+                    logger.LogDebug("No connection to close");
+                    return;
+                }
 
-            if (!client.Connected)
-            {
-                logger.LogDebug("Connection is already closed");
+                if (!client.Connected)
+                {
+                    logger.LogDebug("Connection is already closed");
+                    client = null;
+                    return;
+                }
+
+                logger.LogDebug("Closing connection");
+                client.Shutdown(SocketShutdown.Both);
+                logger.LogInformation("{0} Connection closed", client?.RemoteEndPoint);
+                client.Close();
                 client = null;
-                return;
             }
-
-            logger.LogDebug("Closing connection");
-            client.Shutdown(SocketShutdown.Both);
-            logger.LogInformation($"{client?.RemoteEndPoint} Connection closed");
-            client.Close();
-            client = null;
+            catch (ObjectDisposedException ex)
+            {
+                logger.LogDebug(ex, "Connection is already closed");
+            }
         }
 
         public override void Dispose()
@@ -89,16 +97,11 @@ namespace VectronsLibrary.Ethernet
                 var client = (Socket)ar.AsyncState;
                 logger.LogTrace("Complete the connection.");
                 client.EndConnect(ar);
-                logger.LogInformation($"Connected to: {client.RemoteEndPoint}");
+                logger.LogInformation("Connected to: {0}", client.RemoteEndPoint);
                 connectionState.OnNext(Connected.Yes(client));
                 var state = new StateObject(client);
                 logger.LogDebug("Start listening for new messages");
                 state.WorkSocket.BeginReceive(state.Buffer, 0, state.Buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), state);
-            }
-            catch (SocketException ex)
-            {
-                logger.LogError(ex, $"Connect failed");
-                connectionState.OnNext(Connected.No(client));
             }
             catch (Exception ex)
             {

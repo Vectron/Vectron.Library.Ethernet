@@ -37,21 +37,23 @@ namespace VectronsLibrary.Ethernet
                 return;
             }
 
-            logger.LogDebug($"{listener?.LocalEndPoint} Closing connection");
+            logger.LogDebug("{0} Closing connection", listener.LocalEndPoint);
 
             foreach (var client in ListClients)
             {
+                EndPoint remoteEndPoint = null;
                 try
                 {
+                    remoteEndPoint = client.RemoteEndPoint;
                     client.Shutdown(SocketShutdown.Both);
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, $"Failed to disconnect {client?.RemoteEndPoint}");
+                    logger.LogError(ex, "Failed to disconnect {0}", remoteEndPoint);
                 }
             }
 
-            logger.LogInformation($"{listener?.LocalEndPoint} Connection closed");
+            logger.LogInformation("{0} Connection closed", listener.LocalEndPoint);
             listener.Close();
             listener = null;
         }
@@ -86,12 +88,12 @@ namespace VectronsLibrary.Ethernet
             {
                 listener.Bind(endpoint);
                 listener.Listen(1000);
-                logger.LogInformation($"Started Listening on: {ip}:{port}");
+                logger.LogInformation("Started Listening on: {0}:{1}", ip, port);
                 listener.BeginAccept(new AsyncCallback(AcceptCallback), listener);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, $"Failed to open server on ip:{ip}:{port}");
+                logger.LogError(ex, $"Failed to open server on {0}:{1}", ip, port);
             }
         }
 
@@ -119,11 +121,8 @@ namespace VectronsLibrary.Ethernet
                 ListClients.Add(handler);
                 var state = new StateObject(handler);
                 handler.BeginReceive(state.Buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
-                logger.LogInformation($"New client connected with adress: {handler.RemoteEndPoint}");
+                logger.LogInformation("New client connected with adress: {0}", handler.RemoteEndPoint);
                 connectionState.OnNext(Connected.Yes(handler));
-            }
-            catch (ObjectDisposedException)
-            {
             }
             catch (Exception ex)
             {

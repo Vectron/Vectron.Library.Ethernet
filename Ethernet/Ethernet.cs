@@ -31,7 +31,7 @@ namespace VectronsLibrary.Ethernet
 
         public virtual void Send(Socket handler, byte[] data)
         {
-            logger.LogDebug($"Sending: {data.Length} bytes - To: {handler.RemoteEndPoint.ToString()}");
+            logger.LogDebug("Sending: {0} bytes - To: {1}", data.Length, handler.RemoteEndPoint);
             handler.BeginSend(data, 0, data.Length, 0, new AsyncCallback(SendCallback), handler);
         }
 
@@ -42,12 +42,10 @@ namespace VectronsLibrary.Ethernet
             var state = (StateObject)ar.AsyncState;
             Socket socket = state.WorkSocket;
             EndPoint remoteEndPoint = null;
-            bool isConnected = false;
 
             try
             {
                 remoteEndPoint = socket.RemoteEndPoint;
-                isConnected = socket.Connected;
                 // Read data from the remote device.
                 int bytesRead = socket.EndReceive(ar);
 
@@ -63,7 +61,7 @@ namespace VectronsLibrary.Ethernet
                     {
                         var receivedData = new ReceivedData(state.RawBytes.ToArray(), socket);
                         DataReceived.OnNext(receivedData);
-                        logger.LogDebug($"Received: {receivedData.Message} - From: {socket.RemoteEndPoint.ToString()}");
+                        logger.LogDebug("Received: {0} - From: {1}", receivedData.Message, remoteEndPoint);
                         state.RawBytes.Clear();
                     }
 
@@ -72,21 +70,13 @@ namespace VectronsLibrary.Ethernet
                 }
                 else
                 {
-                    logger.LogInformation($"{socket.RemoteEndPoint} requested a shutdown");
+                    logger.LogInformation("{0} requested a shutdown", remoteEndPoint);
                     Shutdown(socket);
-                }
-            }
-            catch (ObjectDisposedException ex)
-            {
-                if (isConnected)
-                {
-                    logger.LogError($"{ex.Message}, Failed receiving data from {remoteEndPoint}");
-                    connectionState.OnNext(Connected.No(socket));
                 }
             }
             catch (Exception ex)
             {
-                logger.LogError($"{ex.Message}, Failed receiving data from {remoteEndPoint}");
+                logger.LogError(ex, "{0}, Failed receiving data from {1}", ex.Message, remoteEndPoint);
                 connectionState.OnNext(Connected.No(socket));
             }
         }
@@ -94,15 +84,17 @@ namespace VectronsLibrary.Ethernet
         protected virtual void SendCallback(IAsyncResult ar)
         {
             // Retrieve the socket from the state object.
-            var client = (Socket)ar.AsyncState;
+            var client = (Socket)ar?.AsyncState;
+            EndPoint remoteEndPoint = null;
             try
             {
+                remoteEndPoint = client.RemoteEndPoint;
                 // Complete sending the data to the remote device.
                 int bytesSent = client.EndSend(ar);
             }
             catch (Exception ex)
             {
-                logger.LogError($"{ex.Message}, Failed sending data to {client.RemoteEndPoint.ToString()}");
+                logger.LogError(ex, "{0}, Failed sending data to {client.RemoteEndPoint.ToString()}", ex.Message);
                 connectionState.OnNext(Connected.No(client));
             }
         }
@@ -113,8 +105,9 @@ namespace VectronsLibrary.Ethernet
             {
                 socket.Shutdown(SocketShutdown.Both);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logger.LogError(ex, "Failed shutting down socket");
             }
 
             socket.Close();
