@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -20,6 +21,7 @@ namespace VectronsLibrary.Ethernet
         }
 
         public IObservable<ReceivedData> ReceivedDataStream => DataReceived.AsObservable();
+
         public IObservable<IConnected<Socket>> SessionStream => connectionState.AsObservable();
 
         public abstract void Dispose();
@@ -39,8 +41,13 @@ namespace VectronsLibrary.Ethernet
             // from the asynchronous state object.
             var state = (StateObject)ar.AsyncState;
             Socket socket = state.WorkSocket;
+            EndPoint remoteEndPoint = null;
+            bool isConnected = false;
+
             try
             {
+                remoteEndPoint = socket.RemoteEndPoint;
+                isConnected = socket.Connected;
                 // Read data from the remote device.
                 int bytesRead = socket.EndReceive(ar);
 
@@ -71,15 +78,15 @@ namespace VectronsLibrary.Ethernet
             }
             catch (ObjectDisposedException ex)
             {
-                if (socket.Connected)
+                if (isConnected)
                 {
-                    logger.LogError($"{ex.Message}, Failed receiving data from {socket.RemoteEndPoint}");
+                    logger.LogError($"{ex.Message}, Failed receiving data from {remoteEndPoint}");
                     connectionState.OnNext(Connected.No(socket));
                 }
             }
             catch (Exception ex)
             {
-                logger.LogError($"{ex.Message}, Failed receiving data from {socket.RemoteEndPoint}");
+                logger.LogError($"{ex.Message}, Failed receiving data from {remoteEndPoint}");
                 connectionState.OnNext(Connected.No(socket));
             }
         }
