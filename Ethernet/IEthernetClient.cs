@@ -2,17 +2,8 @@
 
 namespace VectronsLibrary.Ethernet
 {
-    public interface IEthernetClient : IEthernet
+    public interface IEthernetClient : IEthernetConnection
     {
-        bool IsConnected
-        {
-            get;
-        }
-
         void ConnectTo(string ip, int port, ProtocolType protocolType);
-
-        void Disconnect();
-
-        void Send(string message);
     }
 }

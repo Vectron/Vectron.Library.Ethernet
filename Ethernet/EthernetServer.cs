@@ -9,60 +9,21 @@ namespace VectronsLibrary.Ethernet
 {
     public sealed class EthernetServer : Ethernet, IEthernetServer
     {
-        private bool disposedValue = false;
-        private Socket listener;
+        private readonly IDisposable clientDisconnectSessionStream;
+        private readonly ILogger<EthernetConnection> connectionLogger;
+        private readonly List<IEthernetConnection> listClients;
 
-        public EthernetServer(ILogger<EthernetServer> logger)
+        public EthernetServer(ILogger<EthernetServer> logger, ILogger<EthernetConnection> connectionLogger)
             : base(logger)
         {
-            SessionStream.Where(x => !x.IsConnected).Subscribe(x => ListClients.Remove(x.Value));
+            this.connectionLogger = connectionLogger;
+            listClients = new List<IEthernetConnection>();
+            clientDisconnectSessionStream = SessionStream.Where(x => !x.IsConnected).Subscribe(x => listClients.Remove(x.Value));
         }
 
-        public bool IsOnline => listener == null ? false : listener.IsBound;
+        public bool IsOnline => Socket != null && Socket.IsBound;
 
-        public List<Socket> ListClients { get; } = new List<Socket>();
-
-        public void Close()
-        {
-            if (listener == null)
-            {
-                logger.LogDebug("No connection to close");
-                return;
-            }
-
-            if (!listener.IsBound)
-            {
-                logger.LogDebug("Connection is already closed");
-                listener = null;
-                return;
-            }
-
-            logger.LogDebug("{0} Closing connection", listener.LocalEndPoint);
-
-            foreach (var client in ListClients)
-            {
-                EndPoint remoteEndPoint = null;
-                try
-                {
-                    remoteEndPoint = client.RemoteEndPoint;
-                    client.Shutdown(SocketShutdown.Both);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to disconnect {0}", remoteEndPoint);
-                }
-            }
-
-            logger.LogInformation("{0} Connection closed", listener.LocalEndPoint);
-            listener.Close();
-            listener = null;
-        }
-
-        public override void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
-        }
+        public IEnumerable<IEthernetConnection> ListClients => listClients;
 
         public void Open(string ip, int port, ProtocolType protocolType)
         {
@@ -76,20 +37,20 @@ namespace VectronsLibrary.Ethernet
                 throw new ArgumentException($"{port} is not a vallid ip4 port number", nameof(port));
             }
 
-            if (listener != null)
+            if (Socket != null)
             {
                 logger.LogDebug("Need to close the previous host first before opening new one");
                 Close();
             }
 
-            listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, protocolType);
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, protocolType);
             var endpoint = new IPEndPoint(IPAddress.Parse(ip), port);
             try
             {
-                listener.Bind(endpoint);
-                listener.Listen(1000);
+                Socket.Bind(endpoint);
+                Socket.Listen(1000);
                 logger.LogInformation("Started Listening on: {0}:{1}", ip, port);
-                listener.BeginAccept(new AsyncCallback(AcceptCallback), listener);
+                _ = Socket.BeginAccept(AcceptCallback, Socket);
             }
             catch (Exception ex)
             {
@@ -101,14 +62,49 @@ namespace VectronsLibrary.Ethernet
         {
             foreach (var client in ListClients)
             {
-                this.Send(client, message);
+                client.Send(message);
             }
         }
 
-        protected override void Shutdown(Socket socket)
+        public void Send(byte[] data)
         {
-            base.Shutdown(socket);
-            ListClients.Remove(socket);
+            foreach (var client in ListClients)
+            {
+                client.Send(data);
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            if (disposing)
+            {
+                clientDisconnectSessionStream.Dispose();
+                Socket?.Close();
+                Socket?.Dispose();
+            }
+        }
+
+        protected override void Shutdown()
+        {
+            if (Socket == null)
+            {
+                logger.LogDebug("No connection to close");
+                return;
+            }
+
+            if (!Socket.IsBound)
+            {
+                logger.LogDebug("Connection is already closed");
+                Socket = null;
+                return;
+            }
+
+            var localEndPoint = Socket.LocalEndPoint;
+            logger.LogDebug("{0} Closing connection", localEndPoint);
+            Socket.Close();
+            Socket = null;
+            logger.LogInformation("{0} Connection closed", localEndPoint);
         }
 
         private void AcceptCallback(IAsyncResult ar)
@@ -116,32 +112,20 @@ namespace VectronsLibrary.Ethernet
             try
             {
                 var listener = (Socket)ar.AsyncState;
-                Socket handler = listener.EndAccept(ar);
-                listener.BeginAccept(new AsyncCallback(AcceptCallback), listener);
-                ListClients.Add(handler);
-                var state = new StateObject(handler);
-                handler.BeginReceive(state.Buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
+                var handler = listener.EndAccept(ar);
+                _ = listener.BeginAccept(AcceptCallback, listener);
+                var ethernetConnection = new EthernetConnection(connectionLogger, handler);
+                _ = ethernetConnection.SessionStream.Subscribe(connectionState);
+                listClients.Add(ethernetConnection);
                 logger.LogInformation("New client connected with adress: {0}", handler.RemoteEndPoint);
-                connectionState.OnNext(Connected.Yes(handler));
+            }
+            catch (ObjectDisposedException)
+            {
+                // socket is closed
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, $"Failed to connect");
-            }
-        }
-
-        private void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    Close();
-                    listener?.Dispose();
-                    listener = null;
-                }
-
-                disposedValue = true;
             }
         }
     }

@@ -10,14 +10,14 @@ namespace VectronsLibrary.Ethernet
             get;
         }
 
-        List<Socket> ListClients
+        IEnumerable<IEthernetConnection> ListClients
         {
             get;
         }
 
-        void Close();
-
         void Open(string ip, int port, ProtocolType protocolType);
+
+        void Send(byte[] data);
 
         void Send(string message);
     }

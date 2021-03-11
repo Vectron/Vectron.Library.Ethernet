@@ -5,17 +5,12 @@ using System.Net.Sockets;
 
 namespace VectronsLibrary.Ethernet
 {
-    public sealed class EthernetClient : Ethernet, IEthernetClient
+    public sealed class EthernetClient : EthernetConnection, IEthernetClient
     {
-        private Socket client;
-        private bool disposed = false;
-
         public EthernetClient(ILogger<EthernetClient> logger)
             : base(logger)
         {
         }
-
-        public bool IsConnected => client == null ? false : client.Connected;
 
         public void ConnectTo(string ip, int port, ProtocolType protocolType)
         {
@@ -29,10 +24,10 @@ namespace VectronsLibrary.Ethernet
                 throw new ArgumentException($"{port} is not a vallid ip4 port number", nameof(port));
             }
 
-            if (client != null)
+            if (Socket != null)
             {
                 logger.LogDebug("Need to close the previous connection first before opening new one");
-                Disconnect();
+                Close();
             }
 
             IPEndPoint endpoint = null;
@@ -40,53 +35,13 @@ namespace VectronsLibrary.Ethernet
             {
                 endpoint = new IPEndPoint(IPAddress.Parse(ip), port);
                 logger.LogInformation("Opening connection to {0}", endpoint);
-                client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, protocolType);
-                client.BeginConnect(endpoint, new AsyncCallback(ConnectCallback), client);
+                Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, protocolType);
+                _ = Socket.BeginConnect(endpoint, ConnectCallback, Socket);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Failed to connect to {0}", endpoint);
             }
-        }
-
-        public void Disconnect()
-        {
-            try
-            {
-                if (client == null)
-                {
-                    logger.LogDebug("No connection to close");
-                    return;
-                }
-
-                if (!client.Connected)
-                {
-                    logger.LogDebug("Connection is already closed");
-                    client = null;
-                    return;
-                }
-
-                logger.LogDebug("Closing connection");
-                client.Shutdown(SocketShutdown.Both);
-                logger.LogInformation("{0} Connection closed", client?.RemoteEndPoint);
-                client.Close();
-                client = null;
-            }
-            catch (ObjectDisposedException ex)
-            {
-                logger.LogDebug(ex, "Connection is already closed");
-            }
-        }
-
-        public override void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
-        }
-
-        public void Send(string message)
-        {
-            this.Send(client, message);
         }
 
         private void ConnectCallback(IAsyncResult ar)
@@ -98,30 +53,16 @@ namespace VectronsLibrary.Ethernet
                 logger.LogTrace("Complete the connection.");
                 client.EndConnect(ar);
                 logger.LogInformation("Connected to: {0}", client.RemoteEndPoint);
-                connectionState.OnNext(Connected.Yes(client));
+                connectionState.OnNext(Connected.Yes(this));
                 var state = new StateObject(client);
                 logger.LogDebug("Start listening for new messages");
-                state.WorkSocket.BeginReceive(state.Buffer, 0, state.Buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), state);
+                _ = client.BeginReceive(state.Buffer, 0, state.Buffer.Length, SocketFlags.None, ReceiveCallback, state);
             }
             catch (Exception ex)
             {
+                Socket = null;
                 logger.LogError(ex, $"Connect failed");
-                connectionState.OnNext(Connected.No(client));
-            }
-        }
-
-        private void Dispose(bool disposing)
-        {
-            if (!disposed)
-            {
-                if (disposing)
-                {
-                    Disconnect();
-                    client?.Dispose();
-                    client = null;
-                }
-
-                disposed = true;
+                connectionState.OnNext(Connected.No(this));
             }
         }
     }

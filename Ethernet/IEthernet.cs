@@ -3,18 +3,18 @@ using System.Net.Sockets;
 
 namespace VectronsLibrary.Ethernet
 {
-    public interface IEthernet : IDisposable
+    public interface IEthernet
     {
-        IObservable<ReceivedData> ReceivedDataStream
+        IObservable<IConnected<IEthernetConnection>> SessionStream
         {
             get;
         }
 
-        IObservable<IConnected<Socket>> SessionStream
+        Socket Socket
         {
             get;
         }
 
-        void Send(Socket handler, string data);
+        void Close();
     }
 }
