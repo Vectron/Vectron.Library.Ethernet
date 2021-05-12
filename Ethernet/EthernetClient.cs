@@ -57,7 +57,12 @@ namespace VectronsLibrary.Ethernet
             try
             {
                 Logger.LogTrace("Retrieving the socket from the state object");
-                var client = (Socket)ar.AsyncState;
+                if (ar.AsyncState is not Socket client)
+                {
+                    Logger.LogCritical("No socket was passed as state object!");
+                    return;
+                }
+
                 Logger.LogTrace("Complete the connection.");
                 client.EndConnect(ar);
                 Logger.LogInformation("Connected to: {0}", client.RemoteEndPoint);

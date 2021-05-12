@@ -126,7 +126,12 @@ namespace VectronsLibrary.Ethernet
         {
             try
             {
-                var listener = (Socket)ar.AsyncState;
+                if (ar.AsyncState is not Socket listener)
+                {
+                    Logger.LogCritical("No Socket was passed to the state object");
+                    return;
+                }
+
                 var handler = listener.EndAccept(ar);
                 _ = listener.BeginAccept(AcceptCallback, listener);
                 var ethernetConnection = new EthernetConnection(connectionLogger, handler);

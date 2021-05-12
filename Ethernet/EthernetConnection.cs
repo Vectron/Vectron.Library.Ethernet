@@ -74,7 +74,12 @@ namespace VectronsLibrary.Ethernet
         {
             // Retrieve the state object and the client socket
             // from the asynchronous state object.
-            var state = (StateObject)ar.AsyncState;
+            if (ar.AsyncState is not StateObject state)
+            {
+                Logger.LogCritical("No StateObject was passed to the state object");
+                return;
+            }
+
             var socket = state.WorkSocket;
             EndPoint? remoteEndPoint = null;
 
