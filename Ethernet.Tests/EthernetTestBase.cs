@@ -1,17 +1,17 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using Microsoft.Extensions.Logging;
 
 namespace VectronsLibrary.Ethernet.Tests.NetFramework
 {
     public abstract class EthernetTestBase
     {
-        protected static readonly ILoggerFactory loggerFactory;
+        protected static readonly ILoggerFactory LoggerFactory;
 
         static EthernetTestBase()
         {
-            loggerFactory = LoggerFactory.Create(x => x.AddDebug().AddConsole().SetMinimumLevel(LogLevel.Trace));
+            LoggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(x => x.AddDebug().AddConsole().SetMinimumLevel(LogLevel.Trace));
         }
 
         public static string GetLocalIPAddress()
@@ -24,7 +24,8 @@ namespace VectronsLibrary.Ethernet.Tests.NetFramework
                     return ip.ToString();
                 }
             }
-            throw new Exception("No network adapters with an IPv4 address in the system!");
+
+            throw new NotSupportedException("No network adapters with an IPv4 address in the system!");
         }
     }
 }

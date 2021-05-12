@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System;
+using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
 
 namespace VectronsLibrary.Ethernet.Tests.NetFramework
 {
@@ -11,8 +11,8 @@ namespace VectronsLibrary.Ethernet.Tests.NetFramework
         [ExpectedException(typeof(ArgumentException))]
         public void InvallidIpTest()
         {
-            var ethernetServer = new EthernetServer(loggerFactory.CreateLogger<EthernetServer>(), loggerFactory.CreateLogger<EthernetConnection>());
-            ethernetServer.Open("", 400, System.Net.Sockets.ProtocolType.Tcp);
+            var ethernetServer = new EthernetServer(LoggerFactory.CreateLogger<EthernetServer>(), LoggerFactory.CreateLogger<EthernetConnection>());
+            ethernetServer.Open(string.Empty, 400, System.Net.Sockets.ProtocolType.Tcp);
         }
 
         [TestMethod]
@@ -20,7 +20,7 @@ namespace VectronsLibrary.Ethernet.Tests.NetFramework
         public void InvallidPortTest()
         {
             var localIp = GetLocalIPAddress();
-            var ethernetServer = new EthernetServer(loggerFactory.CreateLogger<EthernetServer>(), loggerFactory.CreateLogger<EthernetConnection>());
+            var ethernetServer = new EthernetServer(LoggerFactory.CreateLogger<EthernetServer>(), LoggerFactory.CreateLogger<EthernetConnection>());
             ethernetServer.Open(localIp, -1, System.Net.Sockets.ProtocolType.Tcp);
         }
 
@@ -28,7 +28,7 @@ namespace VectronsLibrary.Ethernet.Tests.NetFramework
         public void ServerCreationTest()
         {
             var localIp = GetLocalIPAddress();
-            var ethernetServer = new EthernetServer(loggerFactory.CreateLogger<EthernetServer>(), loggerFactory.CreateLogger<EthernetConnection>());
+            var ethernetServer = new EthernetServer(LoggerFactory.CreateLogger<EthernetServer>(), LoggerFactory.CreateLogger<EthernetConnection>());
             ethernetServer.Open(localIp, 500, System.Net.Sockets.ProtocolType.Tcp);
             Assert.IsTrue(ethernetServer.IsOnline);
             ethernetServer.Dispose();

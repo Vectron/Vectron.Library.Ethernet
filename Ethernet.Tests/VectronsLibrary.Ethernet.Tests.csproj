@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.1;netcoreapp3.1;net461;net5.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn),1573,1591,1712</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,5 +19,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ethernet\VectronsLibrary.Ethernet.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(RepositoryRootDirectory)\GlobalSuppressions.cs" />
   </ItemGroup>
 </Project>

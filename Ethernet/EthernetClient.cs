@@ -1,17 +1,25 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using Microsoft.Extensions.Logging;
 
 namespace VectronsLibrary.Ethernet
 {
+    /// <summary>
+    /// Default implementation of <see cref="IEthernetClient"/>.
+    /// </summary>
     public sealed class EthernetClient : EthernetConnection, IEthernetClient
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EthernetClient"/> class.
+        /// </summary>
+        /// <param name="logger">An <see cref="ILogger"/> instance used for logging.</param>
         public EthernetClient(ILogger<EthernetClient> logger)
             : base(logger)
         {
         }
 
+        /// <inheritdoc/>
         public void ConnectTo(string ip, int port, ProtocolType protocolType)
         {
             if (string.IsNullOrWhiteSpace(ip))
@@ -19,28 +27,28 @@ namespace VectronsLibrary.Ethernet
                 throw new ArgumentException("No vallid ip adress specified", nameof(ip));
             }
 
-            if (port <= 0 || port > 65535)
+            if (port is <= 0 or > 65535)
             {
                 throw new ArgumentException($"{port} is not a vallid ip4 port number", nameof(port));
             }
 
             if (Socket != null)
             {
-                logger.LogDebug("Need to close the previous connection first before opening new one");
+                Logger.LogDebug("Need to close the previous connection first before opening new one");
                 Close();
             }
 
-            IPEndPoint endpoint = null;
+            IPEndPoint? endpoint = null;
             try
             {
                 endpoint = new IPEndPoint(IPAddress.Parse(ip), port);
-                logger.LogInformation("Opening connection to {0}", endpoint);
+                Logger.LogInformation("Opening connection to {0}", endpoint);
                 Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, protocolType);
                 _ = Socket.BeginConnect(endpoint, ConnectCallback, Socket);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to connect to {0}", endpoint);
+                Logger.LogError(ex, "Failed to connect to {0}", endpoint);
             }
         }
 
@@ -48,21 +56,21 @@ namespace VectronsLibrary.Ethernet
         {
             try
             {
-                logger.LogTrace("Retrieving the socket from the state object");
+                Logger.LogTrace("Retrieving the socket from the state object");
                 var client = (Socket)ar.AsyncState;
-                logger.LogTrace("Complete the connection.");
+                Logger.LogTrace("Complete the connection.");
                 client.EndConnect(ar);
-                logger.LogInformation("Connected to: {0}", client.RemoteEndPoint);
-                connectionState.OnNext(Connected.Yes(this));
+                Logger.LogInformation("Connected to: {0}", client.RemoteEndPoint);
+                ConnectionState.OnNext(Connected.Yes(this));
                 var state = new StateObject(client);
-                logger.LogDebug("Start listening for new messages");
+                Logger.LogDebug("Start listening for new messages");
                 _ = client.BeginReceive(state.Buffer, 0, state.Buffer.Length, SocketFlags.None, ReceiveCallback, state);
             }
             catch (Exception ex)
             {
                 Socket = null;
-                logger.LogError(ex, $"Connect failed");
-                connectionState.OnNext(Connected.No(this));
+                Logger.LogError(ex, $"Connect failed");
+                ConnectionState.OnNext(Connected.No(this));
             }
         }
     }

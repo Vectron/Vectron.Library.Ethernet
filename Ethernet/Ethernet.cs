@@ -1,54 +1,94 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Net.Sockets;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using Microsoft.Extensions.Logging;
 
 namespace VectronsLibrary.Ethernet
 {
+    /// <summary>
+    /// Base class for using an ethernet connection.
+    /// </summary>
     public abstract class Ethernet : IDisposable, IEthernet
     {
-        protected readonly BehaviorSubject<IConnected<IEthernetConnection>> connectionState = new BehaviorSubject<IConnected<IEthernetConnection>>(Connected.No<IEthernetConnection>(null));
-        protected readonly ILogger logger;
-        protected bool disposedValue;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Ethernet"/> class.
+        /// </summary>
+        /// <param name="logger">An <see cref="ILogger"/> instance used for logging.</param>
         public Ethernet(ILogger logger)
         {
-            this.logger = logger;
+            Logger = logger;
+            ConnectionState = new BehaviorSubject<IConnected<IEthernetConnection>>(Connected.No<IEthernetConnection>(null));
         }
 
-        public IObservable<IConnected<IEthernetConnection>> SessionStream => connectionState.AsObservable();
+        /// <inheritdoc/>
+        public IObservable<IConnected<IEthernetConnection>> SessionStream => ConnectionState.AsObservable();
 
-        public Socket Socket
+        /// <inheritdoc/>
+        public Socket? Socket
         {
             get;
             internal set;
         }
 
+        /// <summary>
+        /// Gets the observable stream for publishing connection changes.
+        /// </summary>
+        protected BehaviorSubject<IConnected<IEthernetConnection>> ConnectionState
+        {
+            get;
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the object has been disposed.
+        /// </summary>
+        protected bool DisposedValue
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Gets the <see cref="ILogger"/> instance used for logging.
+        /// </summary>
+        protected ILogger Logger
+        {
+            get;
+        }
+
+        /// <inheritdoc/>
         public void Close()
         {
             Shutdown();
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// Protected implementation of Dispose pattern.
+        /// </summary>
+        /// <param name="disposing">Value indicating if we need to cleanup managed resources.</param>
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!DisposedValue)
             {
                 if (disposing)
                 {
-                    connectionState.Dispose();
+                    ConnectionState.Dispose();
                 }
 
-                disposedValue = true;
+                DisposedValue = true;
             }
         }
 
+        /// <summary>
+        /// Shutdown the connection.
+        /// </summary>
         protected abstract void Shutdown();
     }
 }
