@@ -58,9 +58,7 @@ namespace VectronsLibrary.Ethernet
 
         /// <inheritdoc/>
         public void Close()
-        {
-            Shutdown();
-        }
+            => Shutdown();
 
         /// <inheritdoc/>
         public void Dispose()

@@ -12,9 +12,7 @@
         /// <param name="value">The object to use for this connection can be <c>null</c>.</param>
         /// <returns>A <see cref="IConnected{T}"/> with the current connection state.</returns>
         public static IConnected<T> No<T>(T? value)
-        {
-            return new Connected<T>(value, false);
-        }
+            => new Connected<T>(value, false);
 
         /// <summary>
         /// Create a <see cref="IConnected{T}"/> that is connected.
@@ -23,8 +21,6 @@
         /// <param name="value">The object to use for this connection can be <c>null</c>.</param>
         /// <returns>A <see cref="IConnected{T}"/> with the current connection state.</returns>
         public static IConnected<T> Yes<T>(T value)
-        {
-            return new Connected<T>(value, true);
-        }
+            => new Connected<T>(value, true);
     }
 }

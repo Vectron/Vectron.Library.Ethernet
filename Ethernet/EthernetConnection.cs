@@ -52,9 +52,7 @@ namespace VectronsLibrary.Ethernet
 
         /// <inheritdoc/>
         public virtual void Send(string data)
-        {
-            Send(Encoding.ASCII.GetBytes(data));
-        }
+            => Send(Encoding.ASCII.GetBytes(data));
 
         /// <inheritdoc/>
         public virtual void Send(byte[] data)
