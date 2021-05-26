@@ -1,19 +1,13 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
-using Microsoft.Extensions.Logging;
 
 namespace VectronsLibrary.Ethernet.Tests.NetFramework
 {
     public abstract class EthernetTestBase
     {
-        protected static readonly ILoggerFactory LoggerFactory;
-
-        static EthernetTestBase()
-        {
-            LoggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(x => x.AddDebug().AddConsole().SetMinimumLevel(LogLevel.Trace));
-        }
-
+        [ExcludeFromCodeCoverage]
         public static string GetLocalIPAddress()
         {
             var host = Dns.GetHostEntry(Dns.GetHostName());
