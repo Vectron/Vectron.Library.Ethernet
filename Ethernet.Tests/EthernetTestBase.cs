@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 
-namespace VectronsLibrary.Ethernet.Tests.NetFramework;
+namespace VectronsLibrary.Ethernet.Tests;
 
 public abstract class EthernetTestBase
 {

@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
-namespace VectronsLibrary.Ethernet.Tests.NetFramework;
+namespace VectronsLibrary.Ethernet.Tests;
 
 [TestClass]
 public class EthernetServerTest : EthernetTestBase
