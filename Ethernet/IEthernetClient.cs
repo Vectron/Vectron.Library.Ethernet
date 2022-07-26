@@ -5,8 +5,16 @@ namespace VectronsLibrary.Ethernet;
 /// <summary>
 /// An ethernet client that can be used to connect to a server.
 /// </summary>
-public interface IEthernetClient : IEthernetConnection
+public interface IEthernetClient : IEthernet
 {
+    /// <summary>
+    /// Gets a value indicating whether if a connection is open.
+    /// </summary>
+    bool IsConnected
+    {
+        get;
+    }
+
     /// <summary>
     /// Try to open a connection to the given IP and port.
     /// </summary>

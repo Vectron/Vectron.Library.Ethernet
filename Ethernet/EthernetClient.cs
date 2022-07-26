@@ -8,16 +8,20 @@ namespace VectronsLibrary.Ethernet;
 /// <summary>
 /// Default implementation of <see cref="IEthernetClient"/>.
 /// </summary>
-public sealed class EthernetClient : EthernetConnection, IEthernetClient
+public sealed class EthernetClient : Ethernet, IEthernetClient
 {
+    private readonly ILoggerFactory loggerFactory;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="EthernetClient"/> class.
     /// </summary>
-    /// <param name="logger">An <see cref="ILogger"/> instance used for logging.</param>
-    public EthernetClient(ILogger<EthernetClient> logger)
-        : base(logger)
-    {
-    }
+    /// <param name="loggerFactory">An <see cref="ILoggerFactory"/> instance used for logging.</param>
+    public EthernetClient(ILoggerFactory loggerFactory)
+        : base(loggerFactory.CreateLogger<EthernetClient>())
+        => this.loggerFactory = loggerFactory;
+
+    /// <inheritdoc/>
+    public bool IsConnected => Socket != null && Socket.Connected;
 
     /// <inheritdoc/>
     public void ConnectTo(string ip, int port, ProtocolType protocolType)
@@ -52,6 +56,41 @@ public sealed class EthernetClient : EthernetConnection, IEthernetClient
         }
     }
 
+    /// <inheritdoc/>
+    protected override void Shutdown()
+    {
+        try
+        {
+            if (Socket == null)
+            {
+                Logger.LogDebug("No connection to close");
+                return;
+            }
+
+            if (!Socket.Connected)
+            {
+                Logger.LogDebug("Connection is already closed");
+                Socket = null;
+                return;
+            }
+
+            var remoteEndpoint = Socket.RemoteEndPoint;
+            Logger.LogDebug("Closing connection");
+            Socket.Disconnect(false);
+            Socket.Close();
+            Socket = null;
+            Logger.LogInformation("{RemoteEndpoint} Connection closed", remoteEndpoint);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            Logger.LogDebug(ex, "Connection is already closed");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed shutting down socket");
+        }
+    }
+
     private void ConnectCallback(IAsyncResult ar)
     {
         try
@@ -66,16 +105,13 @@ public sealed class EthernetClient : EthernetConnection, IEthernetClient
             Logger.LogTrace("Complete the connection.");
             client.EndConnect(ar);
             Logger.LogInformation("Connected to: {RemoteEndpoint}", client.RemoteEndPoint);
-            ConnectionState.OnNext(Connected.Yes(this));
-            var state = new StateObject(client);
-            Logger.LogDebug("Start listening for new messages");
-            _ = client.BeginReceive(state.Buffer, 0, state.Buffer.Length, SocketFlags.None, ReceiveCallback, state);
+            var ethernetConnection = new EthernetConnection(loggerFactory.CreateLogger<EthernetConnection>(), client);
+            _ = ethernetConnection.SessionStream.Subscribe(ConnectionState);
         }
         catch (Exception ex)
         {
             Socket = null;
             Logger.LogError(ex, $"Connect failed");
-            ConnectionState.OnNext(Connected.No(this));
         }
     }
 }

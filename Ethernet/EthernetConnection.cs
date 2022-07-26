@@ -40,6 +40,7 @@ public class EthernetConnection : Ethernet, IEthernetConnection
         if (socket != null)
         {
             var state = new StateObject(socket);
+            Logger.LogDebug("Start listening for new messages");
             _ = socket.BeginReceive(state.Buffer, 0, state.Buffer.Length, SocketFlags.None, ReceiveCallback, state);
         }
     }
