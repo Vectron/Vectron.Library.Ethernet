@@ -13,18 +13,17 @@ namespace VectronsLibrary.Ethernet;
 public sealed class EthernetServer : Ethernet, IEthernetServer
 {
     private readonly IDisposable clientDisconnectSessionStream;
-    private readonly ILogger<EthernetConnection> connectionLogger;
     private readonly List<IEthernetConnection> listClients;
+    private readonly ILoggerFactory loggerFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EthernetServer"/> class.
     /// </summary>
-    /// <param name="logger">An <see cref="ILogger"/> instance used for logging.</param>
-    /// <param name="connectionLogger">An <see cref="ILogger"/> instance used for logging in connections.</param>
-    public EthernetServer(ILogger<EthernetServer> logger, ILogger<EthernetConnection> connectionLogger)
-        : base(logger)
+    /// <param name="loggerFactory">An <see cref="ILoggerFactory"/> instance used for logging in connections.</param>
+    public EthernetServer(ILoggerFactory loggerFactory)
+        : base(loggerFactory.CreateLogger<EthernetServer>())
     {
-        this.connectionLogger = connectionLogger;
+        this.loggerFactory = loggerFactory;
         listClients = new List<IEthernetConnection>();
         clientDisconnectSessionStream = SessionStream.Where(x => !x.IsConnected && x.Value != null).Subscribe(x => listClients.Remove(x.Value!));
     }
@@ -134,7 +133,7 @@ public sealed class EthernetServer : Ethernet, IEthernetServer
 
             var handler = listener.EndAccept(ar);
             _ = listener.BeginAccept(AcceptCallback, listener);
-            var ethernetConnection = new EthernetConnection(connectionLogger, handler);
+            var ethernetConnection = new EthernetConnection(loggerFactory.CreateLogger<EthernetConnection>(), handler);
             _ = ethernetConnection.SessionStream.Subscribe(ConnectionState);
             listClients.Add(ethernetConnection);
             Logger.LogInformation("New client connected with adress: {RemoteEndpoint}", handler.RemoteEndPoint);
