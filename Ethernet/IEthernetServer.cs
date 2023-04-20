@@ -17,7 +17,7 @@ public interface IEthernetServer : IEthernet
     }
 
     /// <summary>
-    /// Gets a <see cref="IEnumerable{IEthernetConnection}"/> with all curently connected clients.
+    /// Gets a <see cref="IEnumerable{IEthernetConnection}"/> with all currently connected clients.
     /// </summary>
     IEnumerable<IEthernetConnection> ListClients
     {
@@ -27,7 +27,7 @@ public interface IEthernetServer : IEthernet
     /// <summary>
     /// Start listening for connections.
     /// </summary>
-    /// <param name="ip">The ip adress to listen on.</param>
+    /// <param name="ip">The ip address to listen on.</param>
     /// <param name="port">The port number to listen on.</param>
     /// <param name="protocolType">The protocol to listen with.</param>
     void Open(string ip, int port, ProtocolType protocolType);

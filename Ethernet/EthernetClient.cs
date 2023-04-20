@@ -28,12 +28,12 @@ public sealed class EthernetClient : Ethernet, IEthernetClient
     {
         if (string.IsNullOrWhiteSpace(ip))
         {
-            throw new ArgumentException("No vallid ip adress specified", nameof(ip));
+            throw new ArgumentException("No valid ip address specified", nameof(ip));
         }
 
         if (port is <= 0 or > 65535)
         {
-            throw new ArgumentException($"{port} is not a vallid ip4 port number", nameof(port));
+            throw new ArgumentException($"{port} is not a valid ip4 port number", nameof(port));
         }
 
         if (Socket != null)

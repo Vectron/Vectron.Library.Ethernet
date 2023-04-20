@@ -18,8 +18,4 @@
   <ItemGroup>
     <ProjectReference Include="..\Ethernet\VectronsLibrary.Ethernet.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="$(RepositoryRootDirectory)\GlobalSuppressions.cs" />
-  </ItemGroup>
 </Project>

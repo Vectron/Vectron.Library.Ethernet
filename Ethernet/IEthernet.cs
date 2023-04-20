@@ -4,7 +4,7 @@ using System.Net.Sockets;
 namespace VectronsLibrary.Ethernet;
 
 /// <summary>
-/// A connection to cuimmunicate between clients over a ethernet socket.
+/// A connection to communicate between clients over a ethernet socket.
 /// </summary>
 public interface IEthernet
 {

@@ -3,9 +3,15 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace VectronsLibrary.Ethernet.Tests;
 
+/// <summary>
+/// A test class for testing the <see cref="EthernetServer"/>.
+/// </summary>
 [TestClass]
 public class EthernetServerTest : EthernetTestBase
 {
+    /// <summary>
+    /// Test if we get an exception when no valid ip-address is given.
+    /// </summary>
     [TestMethod]
     public void InvallidIpTest()
     {
@@ -13,6 +19,9 @@ public class EthernetServerTest : EthernetTestBase
         _ = Assert.ThrowsException<ArgumentException>(() => ethernetServer.Open(string.Empty, 400, System.Net.Sockets.ProtocolType.Tcp));
     }
 
+    /// <summary>
+    /// Test if we get an exception when no valid port is given.
+    /// </summary>
     [TestMethod]
     public void InvallidPortTest()
     {
@@ -21,6 +30,9 @@ public class EthernetServerTest : EthernetTestBase
         _ = Assert.ThrowsException<ArgumentException>(() => ethernetServer.Open(localIp, -1, System.Net.Sockets.ProtocolType.Tcp));
     }
 
+    /// <summary>
+    /// Test if we can open a server on the local system.
+    /// </summary>
     [TestMethod]
     public void ServerCreationTest()
     {

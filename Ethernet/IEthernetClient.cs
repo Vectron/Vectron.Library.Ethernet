@@ -18,8 +18,8 @@ public interface IEthernetClient : IEthernet
     /// <summary>
     /// Try to open a connection to the given IP and port.
     /// </summary>
-    /// <param name="ip">The ip adress to connect to.</param>
+    /// <param name="ip">The ip address to connect to.</param>
     /// <param name="port">The port to connect to.</param>
-    /// <param name="protocolType">The protocol thype to connect with.</param>
+    /// <param name="protocolType">The protocol type to connect with.</param>
     void ConnectTo(string ip, int port, ProtocolType protocolType);
 }

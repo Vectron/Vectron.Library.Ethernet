@@ -6,9 +6,16 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace VectronsLibrary.Ethernet.Tests;
 
+/// <summary>
+/// A test class for testing the <see cref="EthernetClient"/>.
+/// </summary>
 [TestClass]
 public class EthernetClientTest : EthernetTestBase
 {
+    /// <summary>
+    /// Test if the client connects to the server.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> that represents this test.</returns>
     [TestMethod]
     public async Task ClientConnectTestAsync()
     {
@@ -25,6 +32,9 @@ public class EthernetClientTest : EthernetTestBase
         Assert.IsTrue(ethernetServer.ListClients.Count() == 1);
     }
 
+    /// <summary>
+    /// Test if we get an exception when no valid ip-address is given.
+    /// </summary>
     [TestMethod]
     public void InvallidIpTest()
     {
@@ -32,6 +42,9 @@ public class EthernetClientTest : EthernetTestBase
         _ = Assert.ThrowsException<ArgumentException>(() => ethernetClient.ConnectTo(string.Empty, 200, System.Net.Sockets.ProtocolType.Tcp));
     }
 
+    /// <summary>
+    /// Test if we get an exception when no valid port is given.
+    /// </summary>
     [TestMethod]
     public void InvallidPortTest()
     {
@@ -40,6 +53,10 @@ public class EthernetClientTest : EthernetTestBase
         _ = Assert.ThrowsException<ArgumentException>(() => ethernetClient.ConnectTo(localIp, -1, System.Net.Sockets.ProtocolType.Tcp));
     }
 
+    /// <summary>
+    /// Test if the client can receive data from the server.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> that represents this test.</returns>
     [TestMethod]
     public async Task ReceiveDataTestAsync()
     {

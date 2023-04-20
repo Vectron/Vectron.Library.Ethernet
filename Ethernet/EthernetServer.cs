@@ -39,12 +39,12 @@ public sealed class EthernetServer : Ethernet, IEthernetServer
     {
         if (string.IsNullOrWhiteSpace(ip))
         {
-            throw new ArgumentException("No vallid ip adress specified", nameof(ip));
+            throw new ArgumentException("No valid ip address specified", nameof(ip));
         }
 
         if (port is <= 0 or > 65535)
         {
-            throw new ArgumentException($"{port} is not a vallid ip4 port number", nameof(port));
+            throw new ArgumentException($"{port} is not a valid ip4 port number", nameof(port));
         }
 
         if (Socket != null)
@@ -136,7 +136,7 @@ public sealed class EthernetServer : Ethernet, IEthernetServer
             var ethernetConnection = new EthernetConnection(loggerFactory.CreateLogger<EthernetConnection>(), handler);
             _ = ethernetConnection.SessionStream.Subscribe(ConnectionState);
             listClients.Add(ethernetConnection);
-            Logger.LogInformation("New client connected with adress: {RemoteEndpoint}", handler.RemoteEndPoint);
+            Logger.LogInformation("New client connected with address: {RemoteEndpoint}", handler.RemoteEndPoint);
         }
         catch (ObjectDisposedException)
         {
