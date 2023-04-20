@@ -10,7 +10,7 @@ namespace VectronsLibrary.Ethernet.Tests;
 /// A test class for testing the <see cref="EthernetClient"/>.
 /// </summary>
 [TestClass]
-public class EthernetClientTest : EthernetTestBase
+public class EthernetClientTest
 {
     /// <summary>
     /// Test if the client connects to the server.
@@ -19,11 +19,11 @@ public class EthernetClientTest : EthernetTestBase
     [TestMethod]
     public async Task ClientConnectTestAsync()
     {
-        var localIp = GetLocalIPAddress();
-        var ethernetServer = new EthernetServer(LoggerFactory);
+        var localIp = TestHelpers.GetLocalIPAddress();
+        var ethernetServer = new EthernetServer(TestHelpers.LoggerFactory);
         ethernetServer.Open(localIp, 100, System.Net.Sockets.ProtocolType.Tcp);
 
-        var ethernetClient = new EthernetClient(LoggerFactory);
+        var ethernetClient = new EthernetClient(TestHelpers.LoggerFactory);
         ethernetClient.ConnectTo(localIp, 100, System.Net.Sockets.ProtocolType.Tcp);
 
         await Task.Delay(100);
@@ -36,9 +36,9 @@ public class EthernetClientTest : EthernetTestBase
     /// Test if we get an exception when no valid ip-address is given.
     /// </summary>
     [TestMethod]
-    public void InvallidIpTest()
+    public void InvalidIpTest()
     {
-        var ethernetClient = new EthernetClient(LoggerFactory);
+        var ethernetClient = new EthernetClient(TestHelpers.LoggerFactory);
         _ = Assert.ThrowsException<ArgumentException>(() => ethernetClient.ConnectTo(string.Empty, 200, System.Net.Sockets.ProtocolType.Tcp));
     }
 
@@ -46,10 +46,10 @@ public class EthernetClientTest : EthernetTestBase
     /// Test if we get an exception when no valid port is given.
     /// </summary>
     [TestMethod]
-    public void InvallidPortTest()
+    public void InvalidPortTest()
     {
-        var localIp = GetLocalIPAddress();
-        var ethernetClient = new EthernetClient(LoggerFactory);
+        var localIp = TestHelpers.GetLocalIPAddress();
+        var ethernetClient = new EthernetClient(TestHelpers.LoggerFactory);
         _ = Assert.ThrowsException<ArgumentException>(() => ethernetClient.ConnectTo(localIp, -1, System.Net.Sockets.ProtocolType.Tcp));
     }
 
@@ -60,13 +60,13 @@ public class EthernetClientTest : EthernetTestBase
     [TestMethod]
     public async Task ReceiveDataTestAsync()
     {
-        var localIp = GetLocalIPAddress();
+        var localIp = TestHelpers.GetLocalIPAddress();
         var testMessage = "this is a test message";
-        var ethernetServer = new EthernetServer(LoggerFactory);
+        var ethernetServer = new EthernetServer(TestHelpers.LoggerFactory);
         ethernetServer.Open(localIp, 300, System.Net.Sockets.ProtocolType.Tcp);
         var subscription = ethernetServer.SessionStream.Where(x => x.IsConnected).Delay(TimeSpan.FromSeconds(1)).Subscribe(x => x.Value?.Send(testMessage));
 
-        var ethernetClient = new EthernetClient(LoggerFactory);
+        var ethernetClient = new EthernetClient(TestHelpers.LoggerFactory);
         ethernetClient.ConnectTo(localIp, 300, System.Net.Sockets.ProtocolType.Tcp);
         var clientConnection = await ethernetClient.SessionStream.Where(x => x.IsConnected).Select(x => x.Value).FirstAsync();
         var first = await clientConnection.ReceivedDataStream.Timeout(TimeSpan.FromSeconds(2)).FirstAsync();

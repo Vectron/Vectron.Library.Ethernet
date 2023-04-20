@@ -8,9 +8,15 @@ using Moq;
 
 namespace VectronsLibrary.Ethernet.Tests;
 
-public abstract class EthernetTestBase
+/// <summary>
+/// Helper methods for running tests.
+/// </summary>
+internal sealed class TestHelpers
 {
-    internal static ILoggerFactory LoggerFactory
+    /// <summary>
+    /// Gets a <see cref="ILoggerFactory"/> mock.
+    /// </summary>
+    public static ILoggerFactory LoggerFactory
     {
         get
         {
@@ -20,6 +26,11 @@ public abstract class EthernetTestBase
         }
     }
 
+    /// <summary>
+    /// Function for getting the local ip-address of the system.
+    /// </summary>
+    /// <returns>The ip-address string.</returns>
+    /// <exception cref="NotSupportedException">When no network adapters are found with an IP4 address.</exception>
     [ExcludeFromCodeCoverage]
     public static string GetLocalIPAddress()
     {
