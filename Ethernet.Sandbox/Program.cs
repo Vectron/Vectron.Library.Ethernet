@@ -7,7 +7,7 @@ namespace VectronsLibrary.Ethernet.Sandbox;
 /// <summary>
 /// Main entry point.
 /// </summary>
-internal class Program
+internal sealed class Program
 {
     private static void ConfigureLogging(HostBuilderContext context, ILoggingBuilder builder)
         => _ = builder.AddSimpleConsole(options =>

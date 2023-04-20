@@ -7,7 +7,7 @@ namespace VectronsLibrary.Ethernet.Sandbox;
 /// <summary>
 /// A <see cref="BackgroundService"/> for opening an ethernet server.
 /// </summary>
-internal class EthernetHost : BackgroundService
+internal sealed class EthernetHost : BackgroundService
 {
     private readonly IEthernetServer ethernetServer;
     private readonly ILogger<EthernetHost> logger;
