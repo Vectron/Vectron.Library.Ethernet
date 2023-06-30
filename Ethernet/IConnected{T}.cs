@@ -1,4 +1,6 @@
-﻿namespace VectronsLibrary.Ethernet;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace VectronsLibrary.Ethernet;
 
 /// <summary>
 /// Express the current state of a connection.
@@ -9,6 +11,7 @@ public interface IConnected<out T>
     /// <summary>
     /// Gets a value indicating whether the connection is connected.
     /// </summary>
+    [MemberNotNullWhen(true, nameof(Value))]
     bool IsConnected
     {
         get;

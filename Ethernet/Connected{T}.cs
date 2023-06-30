@@ -1,4 +1,6 @@
-﻿namespace VectronsLibrary.Ethernet;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace VectronsLibrary.Ethernet;
 
 /// <summary>
 /// A default implementation of <see cref="IConnected{T}"/>.
@@ -18,6 +20,7 @@ public class Connected<T> : IConnected<T>
     }
 
     /// <inheritdoc/>
+    [MemberNotNullWhen(true, nameof(Value))]
     public bool IsConnected
     {
         get;
