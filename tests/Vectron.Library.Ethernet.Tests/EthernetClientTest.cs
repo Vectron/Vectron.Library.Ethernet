@@ -62,8 +62,8 @@ public class EthernetClientTest
         });
 
         using var ethernetClient = new EthernetClient(clientSettings, NullLogger<EthernetClient>.Instance);
-        var result = await ethernetClient.ConnectAsync();
-        Assert.IsFalse(result);
+        _ = await Assert.ThrowsExceptionAsync<FormatException>(async () => await ethernetClient.ConnectAsync().ConfigureAwait(false));
+        Assert.IsFalse(ethernetClient.IsConnected, "Client not connected");
     }
 
     /// <summary>
@@ -81,8 +81,8 @@ public class EthernetClientTest
         });
 
         using var ethernetClient = new EthernetClient(clientSettings, NullLogger<EthernetClient>.Instance);
-        var result = await ethernetClient.ConnectAsync();
-        Assert.IsFalse(result);
+        _ = await Assert.ThrowsExceptionAsync<ArgumentOutOfRangeException>(async () => await ethernetClient.ConnectAsync().ConfigureAwait(false));
+        Assert.IsFalse(ethernetClient.IsConnected, "Client not connected");
     }
 
     /// <summary>

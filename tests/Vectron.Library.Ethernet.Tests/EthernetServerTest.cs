@@ -13,7 +13,7 @@ public class EthernetServerTest
     /// Test if we get an exception when no valid ip-address is given.
     /// </summary>
     [TestMethod]
-    public void InvalidIpTest()
+    public void InvalidIpTestAsync()
     {
         var serverSettings = TestHelpers.CreateOptions<EthernetServerOptions>(options =>
         {
@@ -23,8 +23,8 @@ public class EthernetServerTest
         });
 
         using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
-        ethernetServer.Open();
-        Assert.IsFalse(ethernetServer.IsListening, "Server is not listening");
+        _ = Assert.ThrowsException<FormatException>(ethernetServer.Open);
+        Assert.IsFalse(ethernetServer.IsListening, "Server not listening");
     }
 
     /// <summary>
@@ -41,8 +41,8 @@ public class EthernetServerTest
         });
 
         using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
-        ethernetServer.Open();
-        Assert.IsFalse(ethernetServer.IsListening, "Server is not listening");
+        _ = Assert.ThrowsException<ArgumentOutOfRangeException>(ethernetServer.Open);
+        Assert.IsFalse(ethernetServer.IsListening, "Server not listening");
     }
 
     /// <summary>
