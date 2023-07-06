@@ -3,7 +3,7 @@ using System.Reactive.Linq;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
-namespace VectronsLibrary.Ethernet;
+namespace Vectron.Library.Ethernet;
 
 /// <summary>
 /// Implementation of <see cref="IEthernetConnection"/>.

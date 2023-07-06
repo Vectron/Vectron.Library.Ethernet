@@ -1,6 +1,6 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 
-namespace VectronsLibrary.Ethernet;
+namespace Vectron.Library.Ethernet;
 
 /// <summary>
 /// Express the current state of a connection.

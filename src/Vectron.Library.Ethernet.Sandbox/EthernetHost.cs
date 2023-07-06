@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace VectronsLibrary.Ethernet.Sandbox;
+namespace Vectron.Library.Ethernet.Sandbox;
 
 /// <summary>
 /// A <see cref="BackgroundService"/> for opening an ethernet server.

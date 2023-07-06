@@ -1,8 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using VectronsLibrary.Ethernet;
-using VectronsLibrary.Ethernet.Sandbox;
+using Vectron.Library.Ethernet;
+using Vectron.Library.Ethernet.Sandbox;
 
 var builder = Host.CreateApplicationBuilder(args);
 

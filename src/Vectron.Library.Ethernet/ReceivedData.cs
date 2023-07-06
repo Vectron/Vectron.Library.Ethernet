@@ -1,6 +1,6 @@
-﻿using System.Text;
+using System.Text;
 
-namespace VectronsLibrary.Ethernet;
+namespace Vectron.Library.Ethernet;
 
 /// <summary>
 /// A full received message.

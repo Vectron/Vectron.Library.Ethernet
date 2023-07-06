@@ -1,4 +1,4 @@
-﻿namespace VectronsLibrary.Ethernet;
+namespace Vectron.Library.Ethernet;
 
 /// <summary>
 /// An ethernet client that can be used to connect to a server.

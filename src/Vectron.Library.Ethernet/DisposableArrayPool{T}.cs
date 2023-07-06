@@ -1,6 +1,6 @@
-﻿using System.Buffers;
+using System.Buffers;
 
-namespace VectronsLibrary.Ethernet;
+namespace Vectron.Library.Ethernet;
 
 /// <summary>
 /// An disposable <see cref="ArrayPool{T}"/> array.

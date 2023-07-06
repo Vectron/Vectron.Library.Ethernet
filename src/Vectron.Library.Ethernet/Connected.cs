@@ -1,4 +1,4 @@
-﻿namespace VectronsLibrary.Ethernet;
+namespace Vectron.Library.Ethernet;
 
 /// <summary>
 /// Class for creating <see cref="IConnected{T}"/>.

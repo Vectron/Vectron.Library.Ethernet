@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using Microsoft.Extensions.Options;
 
-namespace VectronsLibrary.Ethernet.Tests;
+namespace Vectron.Library.Ethernet.Tests;
 
 /// <summary>
 /// Helper methods for running tests.

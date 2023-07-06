@@ -3,7 +3,7 @@ using System.Reactive.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace VectronsLibrary.Ethernet.Tests;
+namespace Vectron.Library.Ethernet.Tests;
 
 /// <summary>
 /// A test class for testing the <see cref="EthernetClient"/>.

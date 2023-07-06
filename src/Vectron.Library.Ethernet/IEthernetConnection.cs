@@ -1,4 +1,4 @@
-﻿namespace VectronsLibrary.Ethernet;
+namespace Vectron.Library.Ethernet;
 
 /// <summary>
 /// Represents a connection that can be used to send messages.

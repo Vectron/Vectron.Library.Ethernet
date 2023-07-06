@@ -1,7 +1,7 @@
-﻿using System.Net;
+using System.Net;
 using Microsoft.Extensions.Logging;
 
-namespace VectronsLibrary.Ethernet;
+namespace Vectron.Library.Ethernet;
 
 /// <summary>
 /// Default implementation of <see cref="IEthernetClient"/>.

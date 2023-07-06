@@ -1,4 +1,4 @@
-﻿namespace VectronsLibrary.Ethernet;
+namespace Vectron.Library.Ethernet;
 
 /// <summary>
 /// Settings for the <see cref="EthernetClient"/>.
