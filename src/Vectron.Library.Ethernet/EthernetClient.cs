@@ -43,6 +43,7 @@ public sealed partial class EthernetClient : EthernetConnection, IEthernetClient
         catch (Exception ex)
         {
             FailedToConnect(settings.IpAddress, settings.Port, ex);
+            throw;
         }
 
         return IsConnected;

@@ -146,6 +146,7 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable
         catch (Exception ex)
         {
             FailedToListen(settings.IpAddress, settings.Port, ex);
+            throw;
         }
     }
 
