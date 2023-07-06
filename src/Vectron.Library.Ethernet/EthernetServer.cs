@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Data;
 using System.Net;
 using System.Net.Sockets;
@@ -84,7 +84,7 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable
         cancellationTokenSource?.Cancel();
         if (listenTask != null)
         {
-            await listenTask;
+            await listenTask.ConfigureAwait(false);
             listenTask?.Dispose();
             listenTask = null;
         }
@@ -138,6 +138,8 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable
             var endpoint = new IPEndPoint(IPAddress.Parse(settings.IpAddress), settings.Port);
             rawSocket.Bind(endpoint);
             rawSocket.Listen(1000);
+
+            cancellationTokenSource?.Dispose();
             cancellationTokenSource = new CancellationTokenSource();
             listenTask = ListenForClient(cancellationTokenSource.Token);
         }

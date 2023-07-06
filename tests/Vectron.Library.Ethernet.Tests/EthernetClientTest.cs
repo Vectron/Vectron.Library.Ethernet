@@ -1,8 +1,5 @@
-﻿using System;
-using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -43,7 +40,7 @@ public class EthernetClientTest
 
         Assert.IsTrue(ethernetClient.IsConnected);
         await Task.Delay(10);
-        Assert.IsTrue(ethernetServer.Clients.Count() == 1);
+        Assert.IsTrue(ethernetServer.Clients.Take(2).Count() == 1);
         await ethernetClient.CloseAsync();
         Assert.IsFalse(ethernetClient.IsConnected);
         await Task.Delay(10);

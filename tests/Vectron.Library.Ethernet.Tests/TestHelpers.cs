@@ -1,4 +1,3 @@
-﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
@@ -9,7 +8,7 @@ namespace VectronsLibrary.Ethernet.Tests;
 /// <summary>
 /// Helper methods for running tests.
 /// </summary>
-internal sealed class TestHelpers
+internal static class TestHelpers
 {
     /// <summary>
     /// Create and configure an <see cref="IOptions{TOptions}"/>.

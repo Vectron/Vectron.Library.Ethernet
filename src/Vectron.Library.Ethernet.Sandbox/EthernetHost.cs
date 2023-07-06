@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace VectronsLibrary.Ethernet.Sandbox;
@@ -6,7 +6,7 @@ namespace VectronsLibrary.Ethernet.Sandbox;
 /// <summary>
 /// A <see cref="BackgroundService"/> for opening an ethernet server.
 /// </summary>
-internal sealed class EthernetHost : BackgroundService
+internal sealed partial class EthernetHost : BackgroundService
 {
     private readonly IEthernetServer ethernetServer;
     private readonly ILogger<EthernetHost> logger;
@@ -34,13 +34,17 @@ internal sealed class EthernetHost : BackgroundService
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
         ethernetServer.Open();
-        sessionStream = ethernetServer.ConnectionStream.Subscribe(async x => await OnClient(x));
+        sessionStream?.Dispose();
+        sessionStream = ethernetServer.ConnectionStream.Subscribe(async x => await OnClient(x).ConfigureAwait(false));
         return Task.CompletedTask;
     }
 
+    [LoggerMessage(EventId = 4, Level = LogLevel.Information, Message = "Client state changed {IsConnected}")]
+    private partial void ClientStateChanged(bool isConnected);
+
     private async Task OnClient(IConnected<IEthernetConnection> connection)
     {
-        await Task.Delay(5000);
-        logger.LogInformation("Client state changed {IsConnected}", connection.IsConnected);
+        await Task.Delay(5000).ConfigureAwait(false);
+        ClientStateChanged(connection.IsConnected);
     }
 }

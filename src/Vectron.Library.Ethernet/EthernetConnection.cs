@@ -1,4 +1,4 @@
-﻿using System.Net.Sockets;
+using System.Net.Sockets;
 using System.Reactive.Linq;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -100,7 +100,7 @@ public partial class EthernetConnection : IEthernetConnection, IDisposable
         catch (Exception ex)
         {
             FailedToSend(RawSocket.RemoteEndPoint, ex);
-            await CloseAsync();
+            await CloseAsync().ConfigureAwait(false);
         }
     }
 
@@ -126,7 +126,7 @@ public partial class EthernetConnection : IEthernetConnection, IDisposable
         while (!RawSocket.Connected
             && !cancellationToken.IsCancellationRequested)
         {
-            await Task.Delay(100, cancellationToken);
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
         }
 
         var receiveBuffer = new byte[BufferSize];
@@ -140,7 +140,7 @@ public partial class EthernetConnection : IEthernetConnection, IDisposable
             {
                 RemoteRequestedClose(remoteEndPoint);
                 observer.OnCompleted();
-                await CloseAsync();
+                await CloseAsync().ConfigureAwait(false);
                 return;
             }
 

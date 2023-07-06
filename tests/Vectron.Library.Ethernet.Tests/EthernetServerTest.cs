@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace VectronsLibrary.Ethernet.Tests;
@@ -22,7 +22,7 @@ public class EthernetServerTest
             options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
         });
 
-        var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
+        using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
         ethernetServer.Open();
         Assert.IsFalse(ethernetServer.IsListening);
     }
@@ -40,7 +40,7 @@ public class EthernetServerTest
             options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
         });
 
-        var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
+        using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
         ethernetServer.Open();
         Assert.IsFalse(ethernetServer.IsListening);
     }
@@ -57,9 +57,8 @@ public class EthernetServerTest
             options.Port = 500;
             options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
         });
-        var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
+        using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
         ethernetServer.Open();
         Assert.IsTrue(ethernetServer.IsListening);
-        ethernetServer.Dispose();
     }
 }
