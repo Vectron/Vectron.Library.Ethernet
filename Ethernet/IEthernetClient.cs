@@ -1,25 +1,16 @@
-﻿using System.Net.Sockets;
-
-namespace VectronsLibrary.Ethernet;
+﻿namespace VectronsLibrary.Ethernet;
 
 /// <summary>
 /// An ethernet client that can be used to connect to a server.
 /// </summary>
-public interface IEthernetClient : IEthernet
+public interface IEthernetClient : IEthernetConnection
 {
-    /// <summary>
-    /// Gets a value indicating whether if a connection is open.
-    /// </summary>
-    bool IsConnected
-    {
-        get;
-    }
-
     /// <summary>
     /// Try to open a connection to the given IP and port.
     /// </summary>
-    /// <param name="ip">The ip address to connect to.</param>
-    /// <param name="port">The port to connect to.</param>
-    /// <param name="protocolType">The protocol type to connect with.</param>
-    void ConnectTo(string ip, int port, ProtocolType protocolType);
+    /// <param name="cancellationToken">
+    /// A cancellation token that can be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    Task<bool> ConnectAsync(CancellationToken cancellationToken = default);
 }

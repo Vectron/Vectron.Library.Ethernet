@@ -1,9 +1,5 @@
-﻿using System;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
@@ -12,177 +8,152 @@ namespace VectronsLibrary.Ethernet;
 /// <summary>
 /// Implementation of <see cref="IEthernetConnection"/>.
 /// </summary>
-public class EthernetConnection : Ethernet, IEthernetConnection
+public partial class EthernetConnection : IEthernetConnection, IDisposable
 {
-    private readonly ISubject<ReceivedData> dataReceived = new Subject<ReceivedData>();
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EthernetConnection"/> class.
-    /// </summary>
-    /// <param name="logger">An <see cref="ILogger"/> instance used for logging.</param>
-    public EthernetConnection(ILogger<EthernetConnection> logger)
-        : base(logger)
-    {
-        Socket = null;
-        ConnectionState.OnNext(Connected.No(this));
-    }
+    private const int BufferSize = 1024;
+    private readonly ILogger logger;
+    private readonly IDisposable receiveDataConnection;
+    private bool disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EthernetConnection"/> class.
     /// </summary>
     /// <param name="logger">An <see cref="ILogger"/> instance used for logging.</param>
     /// <param name="socket">The raw socket used to communicate.</param>
-    public EthernetConnection(ILogger<EthernetConnection> logger, Socket socket)
-        : base(logger)
+    public EthernetConnection(ILogger logger, Socket socket)
     {
-        Socket = socket;
-        ConnectionState.OnNext(Connected.Yes(this));
-        if (socket != null)
-        {
-            var state = new StateObject(socket);
-            Logger.LogDebug("Start listening for new messages");
-            _ = socket.BeginReceive(state.Buffer, 0, state.Buffer.Length, SocketFlags.None, ReceiveCallback, state);
-        }
+        this.logger = logger;
+        RawSocket = socket;
+        var publisher = Observable.Create<ReceivedData>(ReceiveDataAsync).Publish();
+        ReceivedDataStream = publisher.AsObservable();
+        receiveDataConnection = publisher.Connect();
     }
 
     /// <inheritdoc/>
-    public bool IsConnected => Socket != null && Socket.Connected;
+    public event EventHandler? ConnectionClosed;
 
     /// <inheritdoc/>
-    public IObservable<ReceivedData> ReceivedDataStream => dataReceived.AsObservable();
+    public bool IsConnected
+        => RawSocket != null && RawSocket.Connected;
 
     /// <inheritdoc/>
-    public virtual void Send(string data)
-        => Send(Encoding.ASCII.GetBytes(data));
-
-    /// <inheritdoc/>
-    public virtual void Send(byte[] data)
+    public IObservable<ReceivedData> ReceivedDataStream
     {
-        if (IsConnected)
-        {
-            Logger.LogDebug("Sending: {Length} bytes - To: {RemoteEndpoint}", data.Length, Socket?.RemoteEndPoint);
-            _ = Socket?.BeginSend(data, 0, data.Length, 0, SendCallback, Socket);
-        }
+        get;
+        private set;
     }
 
     /// <summary>
-    /// A callback function when data is received from the socket.
+    /// Gets the underlying <see cref="Socket"/>.
     /// </summary>
-    /// <param name="ar"><see cref="IAsyncResult"/>.</param>
-    protected virtual void ReceiveCallback(IAsyncResult ar)
+    protected Socket RawSocket
     {
-        // Retrieve the state object and the client socket
-        // from the asynchronous state object.
-        if (ar.AsyncState is not StateObject state)
-        {
-            Logger.LogCritical("No StateObject was passed to the state object");
-            return;
-        }
-
-        var socket = state.WorkSocket;
-        EndPoint? remoteEndPoint = null;
-
-        try
-        {
-            remoteEndPoint = socket.RemoteEndPoint;
-
-            // Read data from the remote device.
-            var bytesRead = socket.EndReceive(ar);
-
-            if (bytesRead > 0)
-            {
-                // There might be more data, so store the data received so far.
-                for (var i = 0; i < bytesRead; i++)
-                {
-                    state.RawBytes.Add(state.Buffer[i]);
-                }
-
-                if (socket.Available == 0)
-                {
-                    var receivedData = new ReceivedData(state.RawBytes.ToArray(), socket);
-                    dataReceived.OnNext(receivedData);
-                    Logger.LogDebug("Received: {Message} - From: {RemoteEndpoint}", receivedData.Message, remoteEndPoint);
-                    state.RawBytes.Clear();
-                }
-
-                // Get the rest of the data.
-                _ = socket.BeginReceive(state.Buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReceiveCallback), state);
-            }
-            else
-            {
-                Logger.LogInformation("{RemoteEndpoint} requested a shutdown", remoteEndPoint);
-                Shutdown();
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed receiving data from {RemoteEndpoint}", remoteEndPoint);
-            ConnectionState.OnNext(Connected.No(this));
-        }
+        get;
+        init;
     }
 
-    /// <summary>
-    /// A callback function when data is send to the socket.
-    /// </summary>
-    /// <param name="ar"><see cref="IAsyncResult"/>.</param>
-    protected virtual void SendCallback(IAsyncResult ar)
+    /// <inheritdoc/>
+    public Task CloseAsync()
     {
-        if (ar is null)
+        if (!IsConnected)
         {
-            throw new ArgumentNullException(nameof(ar));
+            return Task.CompletedTask;
         }
 
-        // Retrieve the socket from the state object.
-        if (ar.AsyncState is not Socket client)
+        var endPoint = RawSocket.RemoteEndPoint;
+        receiveDataConnection.Dispose();
+        RawSocket.Close();
+        ConnectionClosed?.Invoke(this, EventArgs.Empty);
+        RequestedClose(endPoint);
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public virtual void Dispose()
+    {
+        if (disposed)
         {
-            Logger.LogCritical("No Socket was passed to the send function");
             return;
         }
 
+        CloseAsync().GetAwaiter().GetResult();
+
+        disposed = true;
+        GC.SuppressFinalize(this);
+    }
+
+    /// <inheritdoc/>
+    public async Task SendAsync(ReadOnlyMemory<byte> data)
+    {
+        ThrowIfDisposed();
+        if (!IsConnected)
+        {
+            return;
+        }
+
+        MessageSending(data.Length, RawSocket.RemoteEndPoint);
         try
         {
-            // Complete sending the data to the remote device.
-            var bytesSent = client.EndSend(ar);
+            _ = await RawSocket.SendAsync(data, SocketFlags.None).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed sending data to {RemoteEndPoint}", client.RemoteEndPoint);
-            ConnectionState.OnNext(Connected.No(this));
+            FailedToSend(RawSocket.RemoteEndPoint, ex);
+            await CloseAsync();
         }
     }
 
     /// <inheritdoc/>
-    protected override void Shutdown()
+    public Task SendAsync(string message)
+        => SendAsync(Encoding.ASCII.GetBytes(message));
+
+    /// <summary>
+    /// Throw an <see cref="ObjectDisposedException"/> when the object is already disposed.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException">Thrown when the object has been disposed.</exception>
+    protected virtual void ThrowIfDisposed()
     {
-        try
+        if (disposed)
         {
-            if (Socket == null)
+            throw new ObjectDisposedException(GetType().FullName);
+        }
+    }
+
+    private async Task ReceiveDataAsync(IObserver<ReceivedData> observer, CancellationToken cancellationToken)
+    {
+        ThrowIfDisposed();
+        while (!RawSocket.Connected
+            && !cancellationToken.IsCancellationRequested)
+        {
+            await Task.Delay(100, cancellationToken);
+        }
+
+        var receiveBuffer = new byte[BufferSize];
+        using var rawBytes = new DisposableArrayPool<byte>();
+        var remoteEndPoint = RawSocket.RemoteEndPoint;
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var bytesRead = await RawSocket.ReceiveAsync(receiveBuffer, SocketFlags.None, cancellationToken).ConfigureAwait(false);
+            if (bytesRead < 0)
             {
-                Logger.LogDebug("No connection to close");
+                RemoteRequestedClose(remoteEndPoint);
+                observer.OnCompleted();
+                await CloseAsync();
                 return;
             }
 
-            if (!Socket.Connected)
+            rawBytes.Add(receiveBuffer.AsSpan(0, bytesRead));
+            if (RawSocket.Available == 0)
             {
-                Logger.LogDebug("Connection is already closed");
-                Socket = null;
-                return;
+                var receivedData = new ReceivedData(rawBytes.Data.ToArray());
+                rawBytes.Clear();
+                MessageReceived(receivedData, remoteEndPoint);
+                observer.OnNext(receivedData);
             }
+        }
 
-            Logger.LogDebug("Closing connection");
-            Socket.Disconnect(false);
-            ConnectionState.OnNext(Connected.No(this));
-            Logger.LogInformation("{RemoteEndpoint} Connection closed", Socket.RemoteEndPoint);
-            Socket.Close();
-            Socket = null;
-        }
-        catch (ObjectDisposedException ex)
-        {
-            Logger.LogDebug(ex, "Connection is already closed");
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed shutting down socket");
-        }
+        observer.OnCompleted();
     }
 }

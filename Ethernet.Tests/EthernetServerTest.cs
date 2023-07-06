@@ -1,4 +1,4 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace VectronsLibrary.Ethernet.Tests;
@@ -15,8 +15,16 @@ public class EthernetServerTest
     [TestMethod]
     public void InvalidIpTest()
     {
-        var ethernetServer = new EthernetServer(TestHelpers.LoggerFactory);
-        _ = Assert.ThrowsException<ArgumentException>(() => ethernetServer.Open(string.Empty, 400, System.Net.Sockets.ProtocolType.Tcp));
+        var serverSettings = TestHelpers.CreateOptions<EthernetServerOptions>(options =>
+        {
+            options.IpAddress = string.Empty;
+            options.Port = 400;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
+
+        var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
+        ethernetServer.Open();
+        Assert.IsFalse(ethernetServer.IsListening);
     }
 
     /// <summary>
@@ -25,9 +33,16 @@ public class EthernetServerTest
     [TestMethod]
     public void InvalidPortTest()
     {
-        var localIp = TestHelpers.GetLocalIPAddress();
-        var ethernetServer = new EthernetServer(TestHelpers.LoggerFactory);
-        _ = Assert.ThrowsException<ArgumentException>(() => ethernetServer.Open(localIp, -1, System.Net.Sockets.ProtocolType.Tcp));
+        var serverSettings = TestHelpers.CreateOptions<EthernetServerOptions>(options =>
+        {
+            options.IpAddress = TestHelpers.GetLocalIPAddress();
+            options.Port = -1;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
+
+        var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
+        ethernetServer.Open();
+        Assert.IsFalse(ethernetServer.IsListening);
     }
 
     /// <summary>
@@ -36,10 +51,15 @@ public class EthernetServerTest
     [TestMethod]
     public void ServerCreationTest()
     {
-        var localIp = TestHelpers.GetLocalIPAddress();
-        var ethernetServer = new EthernetServer(TestHelpers.LoggerFactory);
-        ethernetServer.Open(localIp, 500, System.Net.Sockets.ProtocolType.Tcp);
-        Assert.IsTrue(ethernetServer.IsOnline);
+        var serverSettings = TestHelpers.CreateOptions<EthernetServerOptions>(options =>
+        {
+            options.IpAddress = TestHelpers.GetLocalIPAddress();
+            options.Port = 500;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
+        var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
+        ethernetServer.Open();
+        Assert.IsTrue(ethernetServer.IsListening);
         ethernetServer.Dispose();
     }
 }

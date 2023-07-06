@@ -1,150 +1,206 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Immutable;
+using System.Data;
 using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using System.Text;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace VectronsLibrary.Ethernet;
 
 /// <summary>
 /// An Ethernet server implementation.
 /// </summary>
-public sealed class EthernetServer : Ethernet, IEthernetServer
+public sealed partial class EthernetServer : IEthernetServer, IDisposable
 {
-    private readonly IDisposable clientDisconnectSessionStream;
-    private readonly List<IEthernetConnection> listClients;
-    private readonly ILoggerFactory loggerFactory;
+    private readonly List<IEthernetConnection> clients = new();
+    private readonly ReaderWriterLockSlim clientsLock = new(LockRecursionPolicy.SupportsRecursion);
+    private readonly Subject<IConnected<IEthernetConnection>> connectionStream = new();
+    private readonly ILogger<EthernetServer> logger;
+    private readonly Socket rawSocket;
+    private readonly EthernetServerOptions settings;
+    private CancellationTokenSource? cancellationTokenSource;
+    private bool disposed;
+    private Task? listenTask;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EthernetServer"/> class.
     /// </summary>
-    /// <param name="loggerFactory">An <see cref="ILoggerFactory"/> instance used for logging in connections.</param>
-    public EthernetServer(ILoggerFactory loggerFactory)
-        : base(loggerFactory.CreateLogger<EthernetServer>())
+    /// <param name="options">The settings for configuring the <see cref="EthernetServer"/>.</param>
+    /// <param name="logger">A <see cref="ILogger"/> instance.</param>
+    public EthernetServer(IOptions<EthernetServerOptions> options, ILogger<EthernetServer> logger)
     {
-        this.loggerFactory = loggerFactory;
-        listClients = new List<IEthernetConnection>();
-        clientDisconnectSessionStream = SessionStream.Where(x => !x.IsConnected && x.Value != null).Subscribe(x => listClients.Remove(x.Value!));
+        this.logger = logger;
+        settings = options.Value;
+        rawSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, settings.ProtocolType);
     }
 
     /// <inheritdoc/>
-    public bool IsOnline => Socket != null && Socket.IsBound;
-
-    /// <inheritdoc/>
-    public IEnumerable<IEthernetConnection> ListClients => listClients;
-
-    /// <inheritdoc/>
-    public void Open(string ip, int port, ProtocolType protocolType)
+    public IEnumerable<IEthernetConnection> Clients
     {
-        if (string.IsNullOrWhiteSpace(ip))
+        get
         {
-            throw new ArgumentException("No valid ip address specified", nameof(ip));
+            clientsLock.EnterReadLock();
+            try
+            {
+                var clone = clients.ToImmutableList();
+                return clone;
+            }
+            finally
+            {
+                clientsLock.ExitReadLock();
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public IObservable<IConnected<IEthernetConnection>> ConnectionStream => connectionStream.AsObservable();
+
+    /// <inheritdoc/>
+    public bool IsListening => rawSocket != null && rawSocket.IsBound;
+
+    /// <inheritdoc/>
+    public Task BroadCastAsync(string message)
+        => BroadCastAsync(Encoding.ASCII.GetBytes(message));
+
+    /// <inheritdoc/>
+    public Task BroadCastAsync(ReadOnlyMemory<byte> data)
+    {
+        var sendTasks = clients.Select(x => x.SendAsync(data)).ToArray();
+        return Task.WhenAll(sendTasks);
+    }
+
+    /// <inheritdoc/>
+    public async Task CloseAsync()
+    {
+        if (!IsListening)
+        {
+            return;
         }
 
-        if (port is <= 0 or > 65535)
+        var localEndPoint = rawSocket.LocalEndPoint;
+        cancellationTokenSource?.Cancel();
+        if (listenTask != null)
         {
-            throw new ArgumentException($"{port} is not a valid ip4 port number", nameof(port));
+            await listenTask;
+            listenTask?.Dispose();
+            listenTask = null;
         }
 
-        if (Socket != null)
-        {
-            Logger.LogDebug("Need to close the previous host first before opening new one");
-            Close();
-        }
-
-        Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, protocolType);
-        var endpoint = new IPEndPoint(IPAddress.Parse(ip), port);
+        cancellationTokenSource?.Dispose();
+        cancellationTokenSource = null;
+        clientsLock.EnterWriteLock();
         try
         {
-            Socket.Bind(endpoint);
-            Socket.Listen(1000);
-            Logger.LogInformation("Started Listening on: {IP}:{Port}", ip, port);
-            _ = Socket.BeginAccept(AcceptCallback, Socket);
+            clients.Clear();
+        }
+        finally
+        {
+            clientsLock.ExitWriteLock();
+        }
+
+        rawSocket.Close();
+        StoppedListening(localEndPoint);
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        CloseAsync().GetAwaiter().GetResult();
+
+        connectionStream.Dispose();
+        clientsLock.Dispose();
+        rawSocket.Dispose();
+        cancellationTokenSource?.Dispose();
+        listenTask?.Dispose();
+
+        disposed = true;
+    }
+
+    /// <inheritdoc/>
+    public void Open()
+    {
+        ThrowIfDisposed();
+        if (IsListening)
+        {
+            return;
+        }
+
+        try
+        {
+            var endpoint = new IPEndPoint(IPAddress.Parse(settings.IpAddress), settings.Port);
+            rawSocket.Bind(endpoint);
+            rawSocket.Listen(1000);
+            cancellationTokenSource = new CancellationTokenSource();
+            listenTask = ListenForClient(cancellationTokenSource.Token);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to open server on {IP}:{Port}", ip, port);
+            FailedToListen(settings.IpAddress, settings.Port, ex);
         }
     }
 
-    /// <inheritdoc/>
-    public void Send(string message)
+    private void EthernetConnection_ConnectionClosed(object? sender, EventArgs e)
     {
-        foreach (var client in ListClients)
+        if (sender is EthernetConnection ethernetConnection)
         {
-            client.Send(message);
-        }
-    }
-
-    /// <inheritdoc/>
-    public void Send(byte[] data)
-    {
-        foreach (var client in ListClients)
-        {
-            client.Send(data);
-        }
-    }
-
-    /// <inheritdoc/>
-    protected override void Dispose(bool disposing)
-    {
-        base.Dispose(disposing);
-        if (disposing)
-        {
-            clientDisconnectSessionStream.Dispose();
-            Socket?.Close();
-            Socket?.Dispose();
-        }
-    }
-
-    /// <inheritdoc/>
-    protected override void Shutdown()
-    {
-        if (Socket == null)
-        {
-            Logger.LogDebug("No connection to close");
-            return;
-        }
-
-        if (!Socket.IsBound)
-        {
-            Logger.LogDebug("Connection is already closed");
-            Socket = null;
-            return;
-        }
-
-        var localEndPoint = Socket.LocalEndPoint;
-        Logger.LogDebug("{LocalEndpoint} Closing connection", localEndPoint);
-        Socket.Close();
-        Socket = null;
-        Logger.LogInformation("{LocalEndpoint} Connection closed", localEndPoint);
-    }
-
-    private void AcceptCallback(IAsyncResult ar)
-    {
-        try
-        {
-            if (ar.AsyncState is not Socket listener)
+            ethernetConnection.ConnectionClosed -= EthernetConnection_ConnectionClosed;
+            clientsLock.EnterWriteLock();
+            try
             {
-                Logger.LogCritical("No Socket was passed to the state object");
-                return;
+                _ = clients.Remove(ethernetConnection);
+            }
+            finally
+            {
+                clientsLock.ExitWriteLock();
             }
 
-            var handler = listener.EndAccept(ar);
-            _ = listener.BeginAccept(AcceptCallback, listener);
-            var ethernetConnection = new EthernetConnection(loggerFactory.CreateLogger<EthernetConnection>(), handler);
-            _ = ethernetConnection.SessionStream.Subscribe(ConnectionState);
-            listClients.Add(ethernetConnection);
-            Logger.LogInformation("New client connected with address: {RemoteEndpoint}", handler.RemoteEndPoint);
+            connectionStream.OnNext(Connected.No(ethernetConnection));
         }
-        catch (ObjectDisposedException)
+    }
+
+    private async Task ListenForClient(CancellationToken cancellationToken)
+    {
+        try
         {
-            // socket is closed
+            var localEndPoint = rawSocket.LocalEndPoint;
+            StartListening(localEndPoint);
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var clientSocket = await rawSocket.AcceptAsync(cancellationToken).ConfigureAwait(false);
+                var ethernetConnection = new EthernetConnection(logger, clientSocket);
+                ethernetConnection.ConnectionClosed += EthernetConnection_ConnectionClosed;
+                clientsLock.EnterWriteLock();
+                try
+                {
+                    clients.Add(ethernetConnection);
+                }
+                finally
+                {
+                    clientsLock.ExitWriteLock();
+                }
+
+                connectionStream.OnNext(Connected.Yes(ethernetConnection));
+                ClientConnected(clientSocket.RemoteEndPoint);
+            }
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
         {
-            Logger.LogError(ex, $"Failed to connect");
+        }
+    }
+
+    private void ThrowIfDisposed()
+    {
+        if (disposed)
+        {
+            throw new ObjectDisposedException(GetType().FullName);
         }
     }
 }

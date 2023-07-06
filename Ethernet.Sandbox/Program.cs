@@ -1,31 +1,26 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using VectronsLibrary.Ethernet;
+using VectronsLibrary.Ethernet.Sandbox;
 
-namespace VectronsLibrary.Ethernet.Sandbox;
+var builder = Host.CreateApplicationBuilder(args);
 
-/// <summary>
-/// Main entry point.
-/// </summary>
-internal sealed class Program
+builder.Logging.AddSimpleConsole(options =>
 {
-    private static void ConfigureLogging(HostBuilderContext context, ILoggingBuilder builder)
-        => _ = builder.AddSimpleConsole(options =>
-        {
-            options.IncludeScopes = true;
-            options.SingleLine = true;
-            options.TimestampFormat = "hh:mm:ss:fff ";
-        });
+    options.IncludeScopes = true;
+    options.SingleLine = true;
+    options.TimestampFormat = "hh:mm:ss:fff";
+});
 
-    private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
-    {
-        _ = services.AddScoped<IEthernetServer, EthernetServer>();
-        _ = services.AddHostedService<EthernetHost>();
-    }
+builder.Services.AddEthernetServer(options =>
+{
+    options.IpAddress = "127.0.0.1";
+    options.Port = 200;
+    options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+});
 
-    private static Task Main(string[] args)
-        => Host.CreateDefaultBuilder(args)
-            .ConfigureLogging(ConfigureLogging)
-            .ConfigureServices(ConfigureServices)
-            .RunConsoleAsync(CancellationToken.None);
-}
+builder.Services.AddHostedService<EthernetHost>();
+
+using var host = builder.Build();
+await host.RunAsync().ConfigureAwait(false);

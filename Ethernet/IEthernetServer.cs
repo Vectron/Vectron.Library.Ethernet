@@ -1,46 +1,56 @@
-﻿using System.Collections.Generic;
-using System.Net.Sockets;
-
-namespace VectronsLibrary.Ethernet;
+﻿namespace VectronsLibrary.Ethernet;
 
 /// <summary>
-/// An ethernet server.
+/// An implementation for a ethernet server.
 /// </summary>
-public interface IEthernetServer : IEthernet
+public interface IEthernetServer
 {
     /// <summary>
-    /// Gets a value indicating whether the server is online.
+    /// Gets a <see cref="IEnumerable{T}"/> of all connected clients.
     /// </summary>
-    bool IsOnline
+    IEnumerable<IEthernetConnection> Clients
     {
         get;
     }
 
     /// <summary>
-    /// Gets a <see cref="IEnumerable{IEthernetConnection}"/> with all currently connected clients.
+    /// Gets a stream with updates from the client connection state.
     /// </summary>
-    IEnumerable<IEthernetConnection> ListClients
+    IObservable<IConnected<IEthernetConnection>> ConnectionStream
     {
         get;
     }
+
+    /// <summary>
+    /// Gets a value indicating whether the server is listening for connections.
+    /// </summary>
+    bool IsListening
+    {
+        get;
+    }
+
+    /// <summary>
+    /// Send data to all clients.
+    /// </summary>
+    /// <param name="data">The data to send.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    Task BroadCastAsync(ReadOnlyMemory<byte> data);
+
+    /// <summary>
+    /// Send a message to all clients.
+    /// </summary>
+    /// <param name="message">The message to send.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    Task BroadCastAsync(string message);
+
+    /// <summary>
+    /// Close the server.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    Task CloseAsync();
 
     /// <summary>
     /// Start listening for connections.
     /// </summary>
-    /// <param name="ip">The ip address to listen on.</param>
-    /// <param name="port">The port number to listen on.</param>
-    /// <param name="protocolType">The protocol to listen with.</param>
-    void Open(string ip, int port, ProtocolType protocolType);
-
-    /// <summary>
-    /// Send raw bytes to all connected clients.
-    /// </summary>
-    /// <param name="data">The data to send.</param>
-    void Send(byte[] data);
-
-    /// <summary>
-    /// Sends a string encoded as ascii to all connected clients.
-    /// </summary>
-    /// <param name="message">The string to send.</param>
-    void Send(string message);
+    void Open();
 }

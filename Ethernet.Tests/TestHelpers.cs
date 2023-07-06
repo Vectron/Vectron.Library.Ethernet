@@ -2,9 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
+using Microsoft.Extensions.Options;
 
 namespace VectronsLibrary.Ethernet.Tests;
 
@@ -14,23 +12,27 @@ namespace VectronsLibrary.Ethernet.Tests;
 internal sealed class TestHelpers
 {
     /// <summary>
-    /// Gets a <see cref="ILoggerFactory"/> mock.
+    /// Create and configure an <see cref="IOptions{TOptions}"/>.
     /// </summary>
-    public static ILoggerFactory LoggerFactory
+    /// <typeparam name="T">The option type to create.</typeparam>
+    /// <param name="configure">Action for configuring the option.</param>
+    /// <returns>The created <see cref="IOptions{TOptions}"/> instance.</returns>
+    [ExcludeFromCodeCoverage]
+    public static IOptions<T> CreateOptions<T>(Action<T> configure)
+        where T : class, new()
     {
-        get
-        {
-            var loggerFactoryMock = Mock.Of<ILoggerFactory>();
-            _ = Mock.Get(loggerFactoryMock).Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(NullLogger.Instance);
-            return loggerFactoryMock;
-        }
+        var instance = new T();
+        configure(instance);
+        return Options.Create(instance);
     }
 
     /// <summary>
     /// Function for getting the local ip-address of the system.
     /// </summary>
     /// <returns>The ip-address string.</returns>
-    /// <exception cref="NotSupportedException">When no network adapters are found with an IP4 address.</exception>
+    /// <exception cref="NotSupportedException">
+    /// When no network adapters are found with an IP4 address.
+    /// </exception>
     [ExcludeFromCodeCoverage]
     public static string GetLocalIPAddress()
     {

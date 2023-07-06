@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace VectronsLibrary.Ethernet.Tests;
@@ -20,37 +22,70 @@ public class EthernetClientTest
     public async Task ClientConnectTestAsync()
     {
         var localIp = TestHelpers.GetLocalIPAddress();
-        var ethernetServer = new EthernetServer(TestHelpers.LoggerFactory);
-        ethernetServer.Open(localIp, 100, System.Net.Sockets.ProtocolType.Tcp);
+        var serverSettings = TestHelpers.CreateOptions<EthernetServerOptions>(options =>
+        {
+            options.IpAddress = localIp;
+            options.Port = 100;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
+        using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
 
-        var ethernetClient = new EthernetClient(TestHelpers.LoggerFactory);
-        ethernetClient.ConnectTo(localIp, 100, System.Net.Sockets.ProtocolType.Tcp);
+        var clientSettings = TestHelpers.CreateOptions<EthernetClientOptions>(options =>
+        {
+            options.IpAddress = localIp;
+            options.Port = 100;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
+        using var ethernetClient = new EthernetClient(clientSettings, NullLogger<EthernetClient>.Instance);
 
-        await Task.Delay(100);
+        ethernetServer.Open();
+        _ = await ethernetClient.ConnectAsync();
 
         Assert.IsTrue(ethernetClient.IsConnected);
-        Assert.IsTrue(ethernetServer.ListClients.Count() == 1);
+        await Task.Delay(10);
+        Assert.IsTrue(ethernetServer.Clients.Count() == 1);
+        await ethernetClient.CloseAsync();
+        Assert.IsFalse(ethernetClient.IsConnected);
+        await Task.Delay(10);
+        Assert.IsTrue(ethernetServer.Clients.Any());
     }
 
     /// <summary>
     /// Test if we get an exception when no valid ip-address is given.
     /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [TestMethod]
-    public void InvalidIpTest()
+    public async Task InvalidIpTestAsync()
     {
-        var ethernetClient = new EthernetClient(TestHelpers.LoggerFactory);
-        _ = Assert.ThrowsException<ArgumentException>(() => ethernetClient.ConnectTo(string.Empty, 200, System.Net.Sockets.ProtocolType.Tcp));
+        var clientSettings = TestHelpers.CreateOptions<EthernetClientOptions>(options =>
+        {
+            options.IpAddress = string.Empty;
+            options.Port = 100;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
+
+        using var ethernetClient = new EthernetClient(clientSettings, NullLogger<EthernetClient>.Instance);
+        var result = await ethernetClient.ConnectAsync();
+        Assert.IsFalse(result);
     }
 
     /// <summary>
     /// Test if we get an exception when no valid port is given.
     /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
     [TestMethod]
-    public void InvalidPortTest()
+    public async Task InvalidPortTestAsync()
     {
-        var localIp = TestHelpers.GetLocalIPAddress();
-        var ethernetClient = new EthernetClient(TestHelpers.LoggerFactory);
-        _ = Assert.ThrowsException<ArgumentException>(() => ethernetClient.ConnectTo(localIp, -1, System.Net.Sockets.ProtocolType.Tcp));
+        var clientSettings = TestHelpers.CreateOptions<EthernetClientOptions>(options =>
+        {
+            options.IpAddress = TestHelpers.GetLocalIPAddress();
+            options.Port = -1;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
+
+        using var ethernetClient = new EthernetClient(clientSettings, NullLogger<EthernetClient>.Instance);
+        var result = await ethernetClient.ConnectAsync();
+        Assert.IsFalse(result);
     }
 
     /// <summary>
@@ -62,15 +97,74 @@ public class EthernetClientTest
     {
         var localIp = TestHelpers.GetLocalIPAddress();
         var testMessage = "this is a test message";
-        var ethernetServer = new EthernetServer(TestHelpers.LoggerFactory);
-        ethernetServer.Open(localIp, 300, System.Net.Sockets.ProtocolType.Tcp);
-        var subscription = ethernetServer.SessionStream.Where(x => x.IsConnected).Delay(TimeSpan.FromSeconds(1)).Subscribe(x => x.Value?.Send(testMessage));
+        var serverSettings = TestHelpers.CreateOptions<EthernetServerOptions>(options =>
+        {
+            options.IpAddress = localIp;
+            options.Port = 200;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
 
-        var ethernetClient = new EthernetClient(TestHelpers.LoggerFactory);
-        ethernetClient.ConnectTo(localIp, 300, System.Net.Sockets.ProtocolType.Tcp);
-        var clientConnection = await ethernetClient.SessionStream.Where(x => x.IsConnected).Select(x => x.Value).FirstAsync();
-        var first = await clientConnection.ReceivedDataStream.Timeout(TimeSpan.FromSeconds(2)).FirstAsync();
+        using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
+        var clientSettings = TestHelpers.CreateOptions<EthernetClientOptions>(options =>
+        {
+            options.IpAddress = localIp;
+            options.Port = 200;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
 
-        Assert.AreEqual(testMessage, first.Message);
+        using var ethernetClient = new EthernetClient(clientSettings, NullLogger<EthernetClient>.Instance);
+        ethernetServer.Open();
+        _ = await ethernetClient.ConnectAsync();
+
+        var task1 = ethernetClient.ReceivedDataStream.Timeout(TimeSpan.FromSeconds(2)).FirstAsync().ToTask();
+        await Task.Delay(10);
+        await ethernetServer.BroadCastAsync(testMessage);
+        var results = await task1;
+
+        Assert.AreEqual(testMessage, results.Message);
+    }
+
+    /// <summary>
+    /// Test if multiple data listeners can be added.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+    [TestMethod]
+    public async Task SubscribingMultipleTimesDoesNotThrowErrorsAsync()
+    {
+        var localIp = TestHelpers.GetLocalIPAddress();
+        var testMessage = "this is a test message";
+        var serverSettings = TestHelpers.CreateOptions<EthernetServerOptions>(options =>
+        {
+            options.IpAddress = localIp;
+            options.Port = 200;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
+
+        using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
+        var clientSettings = TestHelpers.CreateOptions<EthernetClientOptions>(options =>
+        {
+            options.IpAddress = localIp;
+            options.Port = 200;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
+
+        using var ethernetClient = new EthernetClient(clientSettings, NullLogger<EthernetClient>.Instance);
+
+        ethernetServer.Open();
+        _ = await ethernetClient.ConnectAsync();
+
+        var task1 = ethernetClient.ReceivedDataStream.Timeout(TimeSpan.FromSeconds(2)).FirstAsync().ToTask();
+        var task2 = ethernetClient.ReceivedDataStream.Timeout(TimeSpan.FromSeconds(2)).FirstAsync().ToTask();
+        var task3 = ethernetClient.ReceivedDataStream.Timeout(TimeSpan.FromSeconds(2)).FirstAsync().ToTask();
+        var task4 = ethernetClient.ReceivedDataStream.Timeout(TimeSpan.FromSeconds(2)).FirstAsync().ToTask();
+
+        await Task.Delay(10);
+        await ethernetServer.BroadCastAsync(testMessage);
+        var results = await Task.WhenAll(task1, task2, task3, task4);
+
+        Assert.AreEqual(testMessage, results[0].Message);
+        Assert.AreEqual(testMessage, results[1].Message);
+        Assert.AreEqual(testMessage, results[2].Message);
+        Assert.AreEqual(testMessage, results[3].Message);
     }
 }

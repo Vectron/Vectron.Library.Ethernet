@@ -6,7 +6,7 @@ namespace VectronsLibrary.Ethernet;
 /// A default implementation of <see cref="IConnected{T}"/>.
 /// </summary>
 /// <typeparam name="T">The type of the connection object.</typeparam>
-public class Connected<T> : IConnected<T>
+public sealed class Connected<T> : IConnected<T>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="Connected{T}"/> class.
