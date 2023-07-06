@@ -1,0 +1,69 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8DCEF26F-F347-42C0-8367-9BF915ECC86E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{24C14792-21B5-4DE0-ACEE-801BD54A5724}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Directory.Build.props = tests\Directory.Build.props
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1CC40AB0-B99A-4FFB-85C5-3A45A92CBFFF}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+		.runsettings = .runsettings
+		Directory.Build.props = Directory.Build.props
+		LICENSE.txt = LICENSE.txt
+		README.md = README.md
+		version.json = version.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{23A0D29B-4246-479B-B6F5-24E038AAE83F}"
+	ProjectSection(SolutionItems) = preProject
+		.github\dependabot.yml = .github\dependabot.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{2D445ED5-4928-4A5B-927A-7DADBEAF6AF1}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\BuildTestDeploy.yml = .github\workflows\BuildTestDeploy.yml
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vectron.Library.Ethernet", "src\Vectron.Library.Ethernet\Vectron.Library.Ethernet.csproj", "{7BDC249E-366C-4009-8149-0BF60DC1F525}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vectron.Library.Ethernet.Sandbox", "src\Vectron.Library.Ethernet.Sandbox\Vectron.Library.Ethernet.Sandbox.csproj", "{D7B754F6-BAC8-4602-87CB-E7DAE906DE2C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vectron.Library.Ethernet.Tests", "tests\Vectron.Library.Ethernet.Tests\Vectron.Library.Ethernet.Tests.csproj", "{63364636-A399-4DF4-AA1C-A9E6DFD3D248}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7BDC249E-366C-4009-8149-0BF60DC1F525}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BDC249E-366C-4009-8149-0BF60DC1F525}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BDC249E-366C-4009-8149-0BF60DC1F525}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BDC249E-366C-4009-8149-0BF60DC1F525}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7B754F6-BAC8-4602-87CB-E7DAE906DE2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7B754F6-BAC8-4602-87CB-E7DAE906DE2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7B754F6-BAC8-4602-87CB-E7DAE906DE2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7B754F6-BAC8-4602-87CB-E7DAE906DE2C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{63364636-A399-4DF4-AA1C-A9E6DFD3D248}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{63364636-A399-4DF4-AA1C-A9E6DFD3D248}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{63364636-A399-4DF4-AA1C-A9E6DFD3D248}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{63364636-A399-4DF4-AA1C-A9E6DFD3D248}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2D445ED5-4928-4A5B-927A-7DADBEAF6AF1} = {23A0D29B-4246-479B-B6F5-24E038AAE83F}
+		{7BDC249E-366C-4009-8149-0BF60DC1F525} = {8DCEF26F-F347-42C0-8367-9BF915ECC86E}
+		{D7B754F6-BAC8-4602-87CB-E7DAE906DE2C} = {8DCEF26F-F347-42C0-8367-9BF915ECC86E}
+		{63364636-A399-4DF4-AA1C-A9E6DFD3D248} = {24C14792-21B5-4DE0-ACEE-801BD54A5724}
+	EndGlobalSection
+EndGlobal
