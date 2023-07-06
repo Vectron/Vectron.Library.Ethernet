@@ -24,7 +24,7 @@ public class EthernetServerTest
 
         using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
         ethernetServer.Open();
-        Assert.IsFalse(ethernetServer.IsListening);
+        Assert.IsFalse(ethernetServer.IsListening, "Server is not listening");
     }
 
     /// <summary>
@@ -42,7 +42,7 @@ public class EthernetServerTest
 
         using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
         ethernetServer.Open();
-        Assert.IsFalse(ethernetServer.IsListening);
+        Assert.IsFalse(ethernetServer.IsListening, "Server is not listening");
     }
 
     /// <summary>
@@ -59,6 +59,6 @@ public class EthernetServerTest
         });
         using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
         ethernetServer.Open();
-        Assert.IsTrue(ethernetServer.IsListening);
+        Assert.IsTrue(ethernetServer.IsListening, "Server is listening");
     }
 }

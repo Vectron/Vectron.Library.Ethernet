@@ -38,13 +38,13 @@ public class EthernetClientTest
         ethernetServer.Open();
         _ = await ethernetClient.ConnectAsync();
 
-        Assert.IsTrue(ethernetClient.IsConnected);
+        Assert.IsTrue(ethernetClient.IsConnected, "Client connected");
         await Task.Delay(10);
-        Assert.IsTrue(ethernetServer.Clients.Take(2).Count() == 1);
+        Assert.IsTrue(ethernetServer.Clients.Take(2).Count() == 1, "Client count is not 1");
         await ethernetClient.CloseAsync();
-        Assert.IsFalse(ethernetClient.IsConnected);
+        Assert.IsFalse(ethernetClient.IsConnected, "Client still connected connected");
         await Task.Delay(10);
-        Assert.IsTrue(ethernetServer.Clients.Any());
+        Assert.IsTrue(ethernetServer.Clients.Any(), "Client count is not 0");
     }
 
     /// <summary>
