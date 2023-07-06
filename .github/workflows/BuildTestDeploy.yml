@@ -51,14 +51,14 @@ jobs:
       - name: Build
         run: dotnet build ${{ env.SOLUTION_NAME }} --configuration Release --no-restore
       - name: Test
-        if: runner.os == 'Windows'
+        if: runner.os != 'Windows'
         run: dotnet test ${{ env.SOLUTION_NAME }} --configuration Release --verbosity normal --no-build --nologo --filter FullyQualifiedName\!~IntegrationTests --collect "Code Coverage" --settings .runsettings --results-directory ./bin/TestResults --logger GitHubActions
       - name: Test windows
         if: runner.os == 'Windows'
         run: dotnet test ${{ env.SOLUTION_NAME }} --configuration Release --verbosity normal --no-build --nologo --filter FullyQualifiedName!~IntegrationTests --collect "Code Coverage" --settings .runsettings --results-directory .\bin\TestResults --logger GitHubActions
       - name: Pack
         id: pack
-        if: runner.os == 'Windows' && (github.ref == 'refs/heads/main' || contains(github.ref, 'refs/tags/'))
+        if: runner.os == 'ubuntu' && (github.ref == 'refs/heads/main' || contains(github.ref, 'refs/tags/'))
         run: dotnet pack ${{ env.SOLUTION_NAME }} --configuration Release --verbosity normal --no-build --nologo --no-restore /p:Version=${{ env.NBGV_SemVer2 }} --output ./bin/Pack/
       - name: Upload Artifact
         if: steps.pack.outcome == 'success'
