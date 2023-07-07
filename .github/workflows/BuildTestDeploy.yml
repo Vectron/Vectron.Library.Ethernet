@@ -84,6 +84,8 @@ jobs:
     if: contains(github.ref, 'refs/tags/')
     needs: build-and-test
     runs-on: ubuntu-latest
+    permissions:
+      deployments: write
     steps:
       - name: "Create release"
         uses: "ergebnis/.github/actions/github/release/create@1.8.0"
