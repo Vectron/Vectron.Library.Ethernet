@@ -47,9 +47,9 @@ jobs:
     - name: Install dependencies
       run: dotnet restore ${{ env.SOLUTION_NAME }}
     - name: Build
-      run: |
-        dotnet build ${{ env.SOLUTION_NAME }} \
-        --configuration Release \
+      run: >
+        dotnet build ${{ env.SOLUTION_NAME }}
+        --configuration Release
         --no-restore
     - name: Test
       run: >
