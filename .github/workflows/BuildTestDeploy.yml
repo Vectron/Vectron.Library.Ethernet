@@ -23,7 +23,7 @@ env:
   Owner: ${{ github.repository_owner }}
   # GitHub Packages Feed settings
   GITHUB_FEED: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
-  GITHUB_KEY: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   # Official NuGet Feed settings
   NUGET_FEED: https://api.nuget.org/v3/index.json
   NUGET_KEY: ${{ secrets.NUGET_KEY }}
@@ -47,9 +47,21 @@ jobs:
     - name: Install dependencies
       run: dotnet restore ${{ env.SOLUTION_NAME }}
     - name: Build
-      run: dotnet build ${{ env.SOLUTION_NAME }} --configuration Release --no-restore
+      run: |
+        dotnet build ${{ env.SOLUTION_NAME }} \
+        --configuration Release \
+        --no-restore
     - name: Test
-      run: dotnet test ${{ env.SOLUTION_NAME }} --configuration Release --verbosity normal --no-build --nologo --collect "Code Coverage" --settings .runsettings --results-directory ./bin/TestResults --logger GitHubActions
+      run: |
+        dotnet test ${{ env.SOLUTION_NAME }} \
+        --configuration Release \
+        --verbosity normal \
+        --no-build \
+        --nologo \
+        --collect "Code Coverage" \
+        --settings .runsettings \
+        --results-directory ./bin/TestResults \
+        --logger GitHubActions
 
   deploy:
     if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/tags/')
@@ -71,14 +83,34 @@ jobs:
     - name: Install dependencies
       run: dotnet restore ${{ env.SOLUTION_NAME }}
     - name: Pack
-      run: dotnet pack ${{ env.SOLUTION_NAME }} --configuration Release --verbosity normal --nologo --no-restore /p:Version=${{ env.NBGV_SemVer2 }} --output ./bin/Pack/
+      run: |
+        dotnet pack ${{ env.SOLUTION_NAME }} \
+        --configuration Release \
+        --verbosity normal \
+        --nologo \
+        --no-restore \
+        /p:Version=${{ env.NBGV_SemVer2 }} \
+        --output ./bin/Pack/
     - name: Setup github remotes
-      run: dotnet nuget add source $GITHUB_FEED --username $Owner --password $GITHUB_KEY --store-password-in-clear-text --name github
+      run: |
+        dotnet nuget add source $GITHUB_FEED \
+        --username $Owner \
+        --password $GITHUB_TOKEN \
+        --store-password-in-clear-text \
+        --name github
     - name: Push to GitHub Feed
-      run: dotnet nuget push ./bin/Pack/*.nupkg --source "github" --skip-duplicate --api-key $GITHUB_KEY
+      run: |
+        dotnet nuget push ./bin/Pack/*.nupkg \
+        --source "github" \
+        --skip-duplicate \
+        --api-key $GITHUB_TOKEN
     - name: Push to NuGet Feed
       if: env.NBGV_PublicRelease == 'true'
-      run: dotnet nuget push ./bin/Pack/*.nupkg --source $NUGET_FEED --skip-duplicate --api-key $NUGET_KEY
+      run: |
+        dotnet nuget push ./bin/Pack/*.nupkg \
+        --source $NUGET_FEED \
+        --skip-duplicate \
+        --api-key $NUGET_KEY
 
   release:
     if: contains(github.ref, 'refs/tags/')
@@ -90,7 +122,6 @@ jobs:
     steps:
       - name: "Create release"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
         run: |
           gh release create "$tag" \
