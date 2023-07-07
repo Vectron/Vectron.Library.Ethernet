@@ -52,15 +52,15 @@ jobs:
         --configuration Release \
         --no-restore
     - name: Test
-      run: |
-        dotnet test ${{ env.SOLUTION_NAME }} \
-        --configuration Release \
-        --verbosity normal \
-        --no-build \
-        --nologo \
-        --collect "Code Coverage" \
-        --settings .runsettings \
-        --results-directory ./bin/TestResults \
+      run: >
+        dotnet test ${{ env.SOLUTION_NAME }}
+        --configuration Release
+        --verbosity normal
+        --no-build
+        --nologo
+        --collect "Code Coverage"
+        --settings .runsettings
+        --results-directory ./bin/TestResults
         --logger GitHubActions
 
   deploy:
@@ -83,33 +83,33 @@ jobs:
     - name: Install dependencies
       run: dotnet restore ${{ env.SOLUTION_NAME }}
     - name: Pack
-      run: |
-        dotnet pack ${{ env.SOLUTION_NAME }} \
-        --configuration Release \
-        --verbosity normal \
-        --nologo \
-        --no-restore \
-        /p:Version=${{ env.NBGV_SemVer2 }} \
+      run: >
+        dotnet pack ${{ env.SOLUTION_NAME }}
+        --configuration Release
+        --verbosity normal
+        --nologo
+        --no-restore
+        /p:Version=${{ env.NBGV_SemVer2 }}
         --output ./bin/Pack/
     - name: Setup github remotes
-      run: |
-        dotnet nuget add source $GITHUB_FEED \
-        --username $Owner \
-        --password $GITHUB_TOKEN \
-        --store-password-in-clear-text \
+      run: >
+        dotnet nuget add source $GITHUB_FEED
+        --username $Owner
+        --password $GITHUB_TOKEN
+        --store-password-in-clear-text
         --name github
     - name: Push to GitHub Feed
-      run: |
-        dotnet nuget push ./bin/Pack/*.nupkg \
-        --source "github" \
-        --skip-duplicate \
+      run: >
+        dotnet nuget push ./bin/Pack/*.nupkg
+        --source "github"
+        --skip-duplicate
         --api-key $GITHUB_TOKEN
     - name: Push to NuGet Feed
       if: env.NBGV_PublicRelease == 'true'
-      run: |
-        dotnet nuget push ./bin/Pack/*.nupkg \
-        --source $NUGET_FEED \
-        --skip-duplicate \
+      run: >
+        dotnet nuget push ./bin/Pack/*.nupkg
+        --source $NUGET_FEED
+        --skip-duplicate
         --api-key $NUGET_KEY
 
   release:
@@ -123,8 +123,8 @@ jobs:
       - name: "Create release"
         env:
           tag: ${{ github.ref_name }}
-        run: |
-          gh release create "$tag" \
-            --repo="$GITHUB_REPOSITORY" \
-            --title="${GITHUB_REPOSITORY#*/} ${tag#v}" \
-            --generate-notes
+        run: >
+          gh release create "$tag"
+          --repo="$GITHUB_REPOSITORY"
+          --title="${GITHUB_REPOSITORY#*/} ${tag#v}"
+          --generate-notes
