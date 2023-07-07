@@ -76,6 +76,8 @@ jobs:
         fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '7.0.x'
     - name: Nerdbank.GitVersioning
       uses: dotnet/nbgv@master
       with:
