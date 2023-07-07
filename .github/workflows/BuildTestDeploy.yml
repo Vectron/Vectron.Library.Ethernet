@@ -77,7 +77,7 @@ jobs:
     - name: Push to GitHub Feed
       run: dotnet nuget push ./bin/Pack/*.nupkg --source "github" --skip-duplicate --api-key $GITHUB_KEY
     - name: Push to NuGet Feed
-      if: ${{ env.NBGV_PublicRelease }} == 'true'
+      if: env.NBGV_PublicRelease == 'true'
       run: dotnet nuget push ./bin/Pack/*.nupkg --source $NUGET_FEED --skip-duplicate --api-key $NUGET_KEY
 
   release:
