@@ -93,6 +93,7 @@ jobs:
         --no-restore
         /p:Version=${{ env.NBGV_SemVer2 }}
         --output ./bin/Pack/
+        /p:TargetFramework=net7.0
     - name: Setup github remotes
       run: >
         dotnet nuget add source $GITHUB_FEED
