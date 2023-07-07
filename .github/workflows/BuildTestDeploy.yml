@@ -81,13 +81,18 @@ jobs:
       run: dotnet nuget push ./bin/Pack/*.nupkg --source $NUGET_FEED --skip-duplicate --api-key $NUGET_KEY
 
   release:
-    if: contains(github.ref, 'refs/tags/')
+    #if: contains(github.ref, 'refs/tags/')
     needs: build-and-test
     runs-on: ubuntu-latest
     permissions:
       deployments: write
     steps:
       - name: "Create release"
-        uses: "ergebnis/.github/actions/github/release/create@1.8.0"
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+        run: |
+          gh release create "$tag" \
+            --repo="$GITHUB_REPOSITORY" \
+            --title="${GITHUB_REPOSITORY#*/} ${tag#v}" \
+            --generate-notes
