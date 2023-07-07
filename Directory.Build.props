@@ -19,6 +19,7 @@
     <Copyright>Vectron</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Vectron/Vectron.Library.Ethernet</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <!--Settings to move the bin en output folders to the root folder-->
@@ -48,6 +49,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="$(SolutionDir)\LICENSE.txt" Pack="true" PackagePath="LICENSE.md" />
+    <None Include="$(SolutionDir)\LICENSE.txt" Pack="true" PackagePath="" />
+    <None Include="$(SolutionDir)\Readme.md" Pack="true" PackagePath="" />
   </ItemGroup>
 </Project>
