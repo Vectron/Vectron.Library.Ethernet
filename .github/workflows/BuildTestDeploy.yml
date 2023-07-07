@@ -1,14 +1,19 @@
-name: .NET
+name: BuildTestDeploy
 on:
   workflow_dispatch:
   push:
-    branches:
-      - 'main'
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
   pull_request:
     branches:
       - 'main'
+    paths-ignore:
+      - '.editorconfig'
+      - '.gitattributes'
+      - '.gitignore'
+      - '.runsettings'
+      - 'LICENSE.txt'
+      - 'README.md'
 
 env:
   # Stop wasting time caching packages
@@ -24,70 +29,54 @@ env:
   NUGET_KEY: ${{ secrets.NUGET_KEY }}
   SOLUTION_NAME: Vectron.Library.Ethernet.sln
 jobs:
-  build:
+  build-and-test:
     strategy:
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
         dotnet-version: ['6.0.x', '7.0.x' ]
     runs-on: ${{ matrix.os }}
-    outputs:
-        publicRelease: ${{ env.NBGV_PublicRelease }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3.5.3
-        with:
-          fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3.2.0
-        with:
-          dotnet-version: ${{ matrix.dotnet-version }}
-      - name: Nerdbank.GitVersioning
-        id: nbgv
-        uses: dotnet/nbgv@master
-        with:
-          setAllVars: true
-      - name: Restore dependencies
-        run: dotnet restore ${{ env.SOLUTION_NAME }}
-      - name: Build
-        run: dotnet build ${{ env.SOLUTION_NAME }} --configuration Release --no-restore
-      - name: Test
-        if: runner.os != 'Windows'
-        run: dotnet test ${{ env.SOLUTION_NAME }} --configuration Release --verbosity normal --no-build --nologo --filter FullyQualifiedName\!~IntegrationTests --collect "Code Coverage" --settings .runsettings --results-directory ./bin/TestResults --logger GitHubActions
-      - name: Test windows
-        if: runner.os == 'Windows'
-        run: dotnet test ${{ env.SOLUTION_NAME }} --configuration Release --verbosity normal --no-build --nologo --filter FullyQualifiedName!~IntegrationTests --collect "Code Coverage" --settings .runsettings --results-directory .\bin\TestResults --logger GitHubActions
-      - name: Pack
-        id: pack
-        if: matrix.os == 'ubuntu-latest' && (github.ref == 'refs/heads/main' || contains(github.ref, 'refs/tags/'))
-        run: dotnet pack ${{ env.SOLUTION_NAME }} --configuration Release --verbosity normal --no-build --nologo --no-restore /p:Version=${{ steps.nbgv.outputs.SemVer2 }} --output ./bin/Pack/
-      - name: Upload Artifact
-        if: steps.pack.outcome == 'success'
-        uses: actions/upload-artifact@v3.1.2
-        with:
-          name: nupkg
-          path: |
-            ./bin/Pack/*.nupkg
-            ./bin/Pack/*.snupkg
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
+    - name: Install dependencies
+      run: dotnet restore ${{ env.SOLUTION_NAME }}
+    - name: Build
+      run: dotnet build ${{ env.SOLUTION_NAME }} --configuration Release --no-restore
+    - name: Test
+      run: dotnet test ${{ env.SOLUTION_NAME }} --configuration Release --verbosity normal --no-build --nologo --collect "Code Coverage" --settings .runsettings --results-directory ./bin/TestResults --logger GitHubActions
 
   deploy:
     if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/tags/')
-    needs: build
+    needs: build-and-test
     runs-on: ubuntu-latest
     permissions:
       packages: write
     steps:
-      - name: Download Artifact
-        id: download
-        uses: actions/download-artifact@v3.0.2
-        with:
-          name: nupkg
-      - name: Setup github remotes
-        run: dotnet nuget add source $GITHUB_FEED --username $Owner --password $GITHUB_KEY --store-password-in-clear-text --name github
-      - name: Push to GitHub Feed
-        run: dotnet nuget push ${{steps.download.outputs.download-path}}/*.nupkg --source "github" --skip-duplicate --api-key $GITHUB_KEY
-      - name: Push to NuGet Feed
-        if: needs.build.outputs.publicRelease == 'true' && contains(github.ref, 'refs/tags/')
-        run: dotnet nuget push ${{steps.download.outputs.download-path}}/*.nupkg --source $NUGET_FEED --skip-duplicate --api-key $NUGET_KEY
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+    - name: Nerdbank.GitVersioning
+      uses: dotnet/nbgv@master
+      with:
+        setAllVars: true
+    - name: Install dependencies
+      run: dotnet restore ${{ env.SOLUTION_NAME }}
+    - name: Pack
+      run: dotnet pack ${{ env.SOLUTION_NAME }} --configuration Release --verbosity normal --nologo --no-restore /p:Version=${{ env.NBGV_SemVer2 }} --output ./bin/Pack/
+    - name: Setup github remotes
+      run: dotnet nuget add source $GITHUB_FEED --username $Owner --password $GITHUB_KEY --store-password-in-clear-text --name github
+    - name: Push to GitHub Feed
+      run: dotnet nuget push ./bin/Pack/*.nupkg --source "github" --skip-duplicate --api-key $GITHUB_KEY
+    - name: Push to NuGet Feed
+      if: ${{ env.NBGV_PublicRelease }} == 'true'
+      run: dotnet nuget push ./bin/Pack/*.nupkg --source $NUGET_FEED --skip-duplicate --api-key $NUGET_KEY
 
   release:
     if: contains(github.ref, 'refs/tags/')
@@ -97,4 +86,4 @@ jobs:
       - name: "Create release"
         uses: "ergebnis/.github/actions/github/release/create@1.8.0"
         with:
-          github-token: $GITHUB_KEY
+          github-token: ${{ secrets.GITHUB_TOKEN }}
