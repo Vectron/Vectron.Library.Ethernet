@@ -80,7 +80,7 @@ jobs:
 
   release:
     if: contains(github.ref, 'refs/tags/')
-    needs: build
+    needs: build-and-test
     runs-on: ubuntu-latest
     steps:
       - name: "Create release"
