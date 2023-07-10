@@ -16,18 +16,11 @@ on:
       - 'README.md'
 
 env:
+  SOLUTION_NAME: Vectron.Library.Ethernet.sln
   # Stop wasting time caching packages
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   # Disable sending usage data to Microsoft
   DOTNET_CLI_TELEMETRY_OPTOUT: true
-  Owner: ${{ github.repository_owner }}
-  # GitHub Packages Feed settings
-  GITHUB_FEED: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  # Official NuGet Feed settings
-  NUGET_FEED: https://api.nuget.org/v3/index.json
-  NUGET_KEY: ${{ secrets.NUGET_KEY }}
-  SOLUTION_NAME: Vectron.Library.Ethernet.sln
 jobs:
   build-and-test:
     strategy:
@@ -69,6 +62,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       packages: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      NUGET_KEY: ${{ secrets.NUGET_KEY }}
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -93,27 +89,29 @@ jobs:
         --no-restore
         /p:Version=${{ env.NBGV_SemVer2 }}
         --output ./bin/Pack/
-        /p:TargetFramework=net7.0
     - name: Setup github remotes
       run: >
-        dotnet nuget add source $GITHUB_FEED
-        --username $Owner
-        --password $GITHUB_TOKEN
+        dotnet nuget add source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+        --username ${{ github.repository_owner }}
+        --password "$GITHUB_TOKEN"
         --store-password-in-clear-text
         --name github
+      shell: bash
     - name: Push to GitHub Feed
       run: >
         dotnet nuget push ./bin/Pack/*.nupkg
         --source "github"
         --skip-duplicate
-        --api-key $GITHUB_TOKEN
+        --api-key "$GITHUB_TOKEN"
+      shell: bash
     - name: Push to NuGet Feed
-      if: env.NBGV_PublicRelease == 'true'
+      if: env.NBGV_PublicRelease == 'true' && env.NUGET_KEY != ''
       run: >
         dotnet nuget push ./bin/Pack/*.nupkg
-        --source $NUGET_FEED
+        --source https://api.nuget.org/v3/index.json
         --skip-duplicate
-        --api-key $NUGET_KEY
+        --api-key "$NUGET_KEY"
+      shell: bash
 
   release:
     if: contains(github.ref, 'refs/tags/')
@@ -131,3 +129,4 @@ jobs:
           --repo="$GITHUB_REPOSITORY"
           --title="${GITHUB_REPOSITORY#*/} ${tag#v}"
           --generate-notes
+        shell: bash
