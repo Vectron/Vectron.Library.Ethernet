@@ -15,118 +15,33 @@ on:
       - 'LICENSE.txt'
       - 'README.md'
 
-env:
-  SOLUTION_NAME: Vectron.Library.Ethernet.sln
-  # Stop wasting time caching packages
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-  # Disable sending usage data to Microsoft
-  DOTNET_CLI_TELEMETRY_OPTOUT: true
 jobs:
-  build-and-test:
+  call-build-test:
     strategy:
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
-        dotnet-version: ['6.0.x', '7.0.x' ]
-    runs-on: ${{ matrix.os }}
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: ${{ matrix.dotnet-version }}
-    - name: Install dependencies
-      run: dotnet restore ${{ env.SOLUTION_NAME }}
-    - name: Build
-      run: >
-        dotnet build ${{ env.SOLUTION_NAME }}
-        --configuration Release
-        --no-restore
-    - name: Test
-      run: >
-        dotnet test ${{ env.SOLUTION_NAME }}
-        --configuration Release
-        --verbosity normal
-        --no-build
-        --nologo
-        --collect "Code Coverage"
-        --settings .runsettings
-        --results-directory ./bin/TestResults
-        --logger GitHubActions
+    uses: Vectron/GithubWorkflows/.github/workflows/BuildAndTest.yml@main
+    with:
+      os: ${{ matrix.os }}
+      dotnet_version: 7.0.x
+      solution_file: Vectron.Library.Ethernet.sln
 
-  deploy:
-    if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/tags/')
-    needs: build-and-test
-    runs-on: ubuntu-latest
+  call-deploy:
+    needs: call-build-test
     permissions:
       packages: write
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    uses: Vectron/GithubWorkflows/.github/workflows/DeployNugetGithub.yml@main
+    with:
+      os: ubuntu-latest
+      dotnet_version: 7.0.x
+      solution_file: Vectron.Library.Ethernet.sln
+    secrets:
       NUGET_KEY: ${{ secrets.NUGET_KEY }}
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '7.0.x'
-    - name: Nerdbank.GitVersioning
-      uses: dotnet/nbgv@master
-      with:
-        setAllVars: true
-    - name: Install dependencies
-      run: dotnet restore ${{ env.SOLUTION_NAME }}
-    - name: Pack
-      run: >
-        dotnet pack ${{ env.SOLUTION_NAME }}
-        --configuration Release
-        --verbosity normal
-        --nologo
-        --no-restore
-        /p:Version=${{ env.NBGV_SemVer2 }}
-        --output ./bin/Pack/
-    - name: Setup github remotes
-      run: >
-        dotnet nuget add source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
-        --username ${{ github.repository_owner }}
-        --password "$GITHUB_TOKEN"
-        --store-password-in-clear-text
-        --name github
-      shell: bash
-    - name: Push to GitHub Feed
-      run: >
-        dotnet nuget push ./bin/Pack/*.nupkg
-        --source "github"
-        --skip-duplicate
-        --api-key "$GITHUB_TOKEN"
-      shell: bash
-    - name: Push to NuGet Feed
-      if: env.NBGV_PublicRelease == 'true' && env.NUGET_KEY != ''
-      run: >
-        dotnet nuget push ./bin/Pack/*.nupkg
-        --source https://api.nuget.org/v3/index.json
-        --skip-duplicate
-        --api-key "$NUGET_KEY"
-      shell: bash
+      
 
-  release:
-    if: contains(github.ref, 'refs/tags/')
-    needs: build-and-test
-    runs-on: ubuntu-latest
+  call-release:
+    needs: call-build-test
     permissions:
       deployments: write
       contents: write
-    steps:
-      - name: "Create release"
-        env:
-          tag: ${{ github.ref_name }}
-        run: >
-          gh release create "$tag"
-          --repo="$GITHUB_REPOSITORY"
-          --title="${GITHUB_REPOSITORY#*/} ${tag#v}"
-          --generate-notes
-        shell: bash
+    uses: Vectron/GithubWorkflows/.github/workflows/CreateRelease.yml@main
