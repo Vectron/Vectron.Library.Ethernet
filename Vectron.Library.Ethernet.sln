@@ -7,6 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8DCEF26F-F34
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{24C14792-21B5-4DE0-ACEE-801BD54A5724}"
 	ProjectSection(SolutionItems) = preProject
+		tests\.editorconfig = tests\.editorconfig
 		tests\Directory.Build.props = tests\Directory.Build.props
 	EndProjectSection
 EndProject
