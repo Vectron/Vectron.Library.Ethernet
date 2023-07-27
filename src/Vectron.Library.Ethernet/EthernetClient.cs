@@ -40,10 +40,9 @@ public sealed partial class EthernetClient : EthernetConnection, IEthernetClient
             await RawSocket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
             ConnectedTo(endpoint);
         }
-        catch (Exception ex)
+        catch (SocketException ex)
         {
-            FailedToConnect(settings.IpAddress, settings.Port, ex);
-            throw;
+            FailedToConnect(settings.IpAddress, settings.Port, ex.Message);
         }
 
         return IsConnected;

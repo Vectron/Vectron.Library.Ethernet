@@ -143,10 +143,9 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable
             cancellationTokenSource = new CancellationTokenSource();
             listenTask = ListenForClient(cancellationTokenSource.Token);
         }
-        catch (Exception ex)
+        catch (SocketException ex)
         {
-            FailedToListen(settings.IpAddress, settings.Port, ex);
-            throw;
+            FailedToListen(settings.IpAddress, settings.Port, ex.Message);
         }
     }
 
