@@ -19,7 +19,6 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
     private readonly ReaderWriterLockSlim clientsLock = new(LockRecursionPolicy.SupportsRecursion);
     private readonly Subject<IConnected<IEthernetConnection>> connectionStream = new();
     private readonly ILogger<EthernetServer> logger;
-    private readonly Socket rawSocket;
     private readonly EthernetServerOptions settings;
     private CancellationTokenSource? cancellationTokenSource;
     private bool disposed;
@@ -34,7 +33,6 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
     {
         this.logger = logger;
         settings = options.Value;
-        rawSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, settings.ProtocolType);
     }
 
     /// <inheritdoc/>
@@ -59,7 +57,7 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
     public IObservable<IConnected<IEthernetConnection>> ConnectionStream => connectionStream.AsObservable();
 
     /// <inheritdoc/>
-    public bool IsListening => rawSocket != null && rawSocket.IsBound;
+    public bool IsListening => listenTask != null && !listenTask.IsCompleted;
 
     /// <inheritdoc/>
     public Task BroadCastAsync(string message)
@@ -75,22 +73,23 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
     /// <inheritdoc/>
     public async Task CloseAsync()
     {
-        if (!IsListening)
+        if (cancellationTokenSource == null || listenTask == null)
         {
+            cancellationTokenSource?.Dispose();
+            cancellationTokenSource = null;
+            listenTask?.Dispose();
+            listenTask = null;
             return;
         }
 
-        var localEndPoint = rawSocket.LocalEndPoint;
-        cancellationTokenSource?.Cancel();
-        if (listenTask != null)
-        {
-            await listenTask.ConfigureAwait(false);
-            listenTask?.Dispose();
-            listenTask = null;
-        }
+        cancellationTokenSource.Cancel();
+        await listenTask.ConfigureAwait(false);
+        listenTask.Dispose();
+        listenTask = null;
 
-        cancellationTokenSource?.Dispose();
+        cancellationTokenSource.Dispose();
         cancellationTokenSource = null;
+
         clientsLock.EnterWriteLock();
         try
         {
@@ -100,9 +99,6 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
         {
             clientsLock.ExitWriteLock();
         }
-
-        rawSocket.Close();
-        StoppedListening(localEndPoint);
     }
 
     /// <inheritdoc/>
@@ -120,10 +116,8 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
         await CloseAsync().ConfigureAwait(false);
         connectionStream.Dispose();
         clientsLock.Dispose();
-        rawSocket.Dispose();
         cancellationTokenSource?.Dispose();
         listenTask?.Dispose();
-
         disposed = true;
     }
 
@@ -138,13 +132,10 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
 
         try
         {
-            var endpoint = new IPEndPoint(IPAddress.Parse(settings.IpAddress), settings.Port);
-            rawSocket.Bind(endpoint);
-            rawSocket.Listen(1000);
-
             cancellationTokenSource?.Dispose();
             cancellationTokenSource = new CancellationTokenSource();
-            listenTask = ListenForClient(cancellationTokenSource.Token);
+            var endpoint = new IPEndPoint(IPAddress.Parse(settings.IpAddress), settings.Port);
+            listenTask = ListenForClient(endpoint, cancellationTokenSource.Token);
         }
         catch (SocketException ex)
         {
@@ -171,17 +162,21 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
         }
     }
 
-    private async Task ListenForClient(CancellationToken cancellationToken)
+    private async Task ListenForClient(IPEndPoint endPoint, CancellationToken cancellationToken)
     {
         try
         {
-            var localEndPoint = rawSocket.LocalEndPoint;
-            StartListening(localEndPoint);
+            using var rawSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, settings.ProtocolType);
+            rawSocket.Bind(endPoint);
+            rawSocket.Listen(1000);
+            StartListening(endPoint);
+
             while (!cancellationToken.IsCancellationRequested)
             {
                 var clientSocket = await rawSocket.AcceptAsync(cancellationToken).ConfigureAwait(false);
                 var ethernetConnection = new EthernetConnection(logger, clientSocket);
                 ethernetConnection.ConnectionClosed += EthernetConnection_ConnectionClosed;
+
                 clientsLock.EnterWriteLock();
                 try
                 {
@@ -198,6 +193,10 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
         }
         catch (OperationCanceledException)
         {
+        }
+        finally
+        {
+            StoppedListening(endPoint);
         }
     }
 

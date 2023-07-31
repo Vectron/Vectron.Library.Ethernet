@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -43,6 +44,26 @@ public class EthernetServerTest
         using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
         _ = Assert.ThrowsException<ArgumentOutOfRangeException>(ethernetServer.Open);
         Assert.IsFalse(ethernetServer.IsListening, "Server not listening");
+    }
+
+    [TestMethod]
+    public async Task ServerCanBeOpenedAndClosedMultipleTimesAsync()
+    {
+        var serverSettings = TestHelpers.CreateOptions<EthernetServerOptions>(options =>
+        {
+            options.IpAddress = TestHelpers.GetLocalIPAddress();
+            options.Port = 2102;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
+        using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
+
+        for (var i = 0; i < 3; i++)
+        {
+            ethernetServer.Open();
+            Assert.IsTrue(ethernetServer.IsListening, $"Server is not listening; iteration:  {i.ToString(CultureInfo.InvariantCulture)}");
+            await ethernetServer.CloseAsync();
+            Assert.IsFalse(ethernetServer.IsListening, $"Server is still listening; iteration:  {i.ToString(CultureInfo.InvariantCulture)}");
+        }
     }
 
     /// <summary>
