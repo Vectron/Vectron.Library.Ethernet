@@ -66,6 +66,43 @@ public class EthernetServerTest
         }
     }
 
+    [TestMethod]
+    public async Task ServerClosingDisconnectsClientsAsync()
+    {
+        var localIp = TestHelpers.GetLocalIPAddress();
+        var serverSettings = TestHelpers.CreateOptions<EthernetServerOptions>(options =>
+        {
+            options.IpAddress = localIp;
+            options.Port = 2103;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
+        using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
+
+        var clientSettings = TestHelpers.CreateOptions<EthernetClientOptions>(options =>
+        {
+            options.IpAddress = localIp;
+            options.Port = 2103;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
+        using var ethernetClient1 = new EthernetClient(clientSettings, NullLogger<EthernetClient>.Instance);
+        using var ethernetClient2 = new EthernetClient(clientSettings, NullLogger<EthernetClient>.Instance);
+        using var ethernetClient3 = new EthernetClient(clientSettings, NullLogger<EthernetClient>.Instance);
+
+        ethernetServer.Open();
+        _ = await ethernetClient1.ConnectAsync();
+        _ = await ethernetClient2.ConnectAsync();
+        _ = await ethernetClient3.ConnectAsync();
+
+        Assert.IsTrue(ethernetClient1.IsConnected, "Client 1 connected");
+        Assert.IsTrue(ethernetClient2.IsConnected, "Client 2 connected");
+        Assert.IsTrue(ethernetClient3.IsConnected, "Client 3 connected");
+
+        await ethernetServer.CloseAsync();
+        await TestHelpers.WaitForPredicate(() => ethernetClient1.IsConnected, TimeSpan.FromSeconds(1), "Client 1 not disconnected");
+        await TestHelpers.WaitForPredicate(() => ethernetClient2.IsConnected, TimeSpan.FromSeconds(1), "Client 2 not disconnected");
+        await TestHelpers.WaitForPredicate(() => ethernetClient3.IsConnected, TimeSpan.FromSeconds(1), "Client 3 not disconnected");
+    }
+
     /// <summary>
     /// Test if we can open a server on the local system.
     /// </summary>
