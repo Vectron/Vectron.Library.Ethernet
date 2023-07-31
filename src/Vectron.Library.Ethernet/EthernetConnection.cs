@@ -8,10 +8,11 @@ namespace Vectron.Library.Ethernet;
 /// <summary>
 /// Implementation of <see cref="IEthernetConnection"/>.
 /// </summary>
-public partial class EthernetConnection : IEthernetConnection, IDisposable
+public sealed partial class EthernetConnection : IEthernetConnection, IDisposable, IAsyncDisposable
 {
     private const int BufferSize = 1024;
     private readonly ILogger logger;
+    private readonly Socket rawSocket;
     private readonly IDisposable receiveDataConnection;
     private bool disposed;
 
@@ -23,7 +24,7 @@ public partial class EthernetConnection : IEthernetConnection, IDisposable
     public EthernetConnection(ILogger logger, Socket socket)
     {
         this.logger = logger;
-        RawSocket = socket;
+        rawSocket = socket;
         var publisher = Observable.Create<ReceivedData>(ReceiveDataAsync).Publish();
         ReceivedDataStream = publisher.AsObservable();
         receiveDataConnection = publisher.Connect();
@@ -34,22 +35,13 @@ public partial class EthernetConnection : IEthernetConnection, IDisposable
 
     /// <inheritdoc/>
     public bool IsConnected
-        => RawSocket != null && RawSocket.Connected;
+        => rawSocket != null && rawSocket.Connected;
 
     /// <inheritdoc/>
     public IObservable<ReceivedData> ReceivedDataStream
     {
         get;
         private set;
-    }
-
-    /// <summary>
-    /// Gets the underlying <see cref="Socket"/>.
-    /// </summary>
-    protected Socket RawSocket
-    {
-        get;
-        init;
     }
 
     /// <inheritdoc/>
@@ -60,9 +52,9 @@ public partial class EthernetConnection : IEthernetConnection, IDisposable
             return Task.CompletedTask;
         }
 
-        var endPoint = RawSocket.RemoteEndPoint;
+        var endPoint = rawSocket.RemoteEndPoint;
         receiveDataConnection.Dispose();
-        RawSocket.Close();
+        rawSocket.Close();
         ConnectionClosed?.Invoke(this, EventArgs.Empty);
         RequestedClose(endPoint);
 
@@ -70,17 +62,18 @@ public partial class EthernetConnection : IEthernetConnection, IDisposable
     }
 
     /// <inheritdoc/>
-    public virtual void Dispose()
+    public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+    /// <inheritdoc/>
+    public async ValueTask DisposeAsync()
     {
         if (disposed)
         {
             return;
         }
 
-        CloseAsync().GetAwaiter().GetResult();
-
         disposed = true;
-        GC.SuppressFinalize(this);
+        await CloseAsync().ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -92,14 +85,14 @@ public partial class EthernetConnection : IEthernetConnection, IDisposable
             return;
         }
 
-        MessageSending(data.Length, RawSocket.RemoteEndPoint);
+        MessageSending(data.Length, rawSocket.RemoteEndPoint);
         try
         {
-            _ = await RawSocket.SendAsync(data, SocketFlags.None).ConfigureAwait(false);
+            _ = await rawSocket.SendAsync(data, SocketFlags.None).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            FailedToSend(RawSocket.RemoteEndPoint, ex);
+            FailedToSend(rawSocket.RemoteEndPoint, ex);
             await CloseAsync().ConfigureAwait(false);
         }
     }
@@ -108,22 +101,10 @@ public partial class EthernetConnection : IEthernetConnection, IDisposable
     public Task SendAsync(string message)
         => SendAsync(Encoding.ASCII.GetBytes(message));
 
-    /// <summary>
-    /// Throw an <see cref="ObjectDisposedException"/> when the object is already disposed.
-    /// </summary>
-    /// <exception cref="ObjectDisposedException">Thrown when the object has been disposed.</exception>
-    protected virtual void ThrowIfDisposed()
-    {
-        if (disposed)
-        {
-            throw new ObjectDisposedException(GetType().FullName);
-        }
-    }
-
     private async Task ReceiveDataAsync(IObserver<ReceivedData> observer, CancellationToken cancellationToken)
     {
         ThrowIfDisposed();
-        while (!RawSocket.Connected
+        while (!rawSocket.Connected
             && !cancellationToken.IsCancellationRequested)
         {
             await Task.Delay(100, cancellationToken).ConfigureAwait(false);
@@ -131,11 +112,11 @@ public partial class EthernetConnection : IEthernetConnection, IDisposable
 
         var receiveBuffer = new byte[BufferSize];
         using var rawBytes = new DisposableArrayPool<byte>();
-        var remoteEndPoint = RawSocket.RemoteEndPoint;
+        var remoteEndPoint = rawSocket.RemoteEndPoint;
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            var bytesRead = await RawSocket.ReceiveAsync(receiveBuffer, SocketFlags.None, cancellationToken).ConfigureAwait(false);
+            var bytesRead = await rawSocket.ReceiveAsync(receiveBuffer, SocketFlags.None, cancellationToken).ConfigureAwait(false);
             if (bytesRead <= 0)
             {
                 RemoteRequestedClose(remoteEndPoint);
@@ -145,7 +126,7 @@ public partial class EthernetConnection : IEthernetConnection, IDisposable
             }
 
             rawBytes.Add(receiveBuffer.AsSpan(0, bytesRead));
-            if (RawSocket.Available == 0)
+            if (rawSocket.Available == 0)
             {
                 var receivedData = new ReceivedData(rawBytes.Data.ToArray());
                 rawBytes.Clear();
@@ -155,5 +136,17 @@ public partial class EthernetConnection : IEthernetConnection, IDisposable
         }
 
         observer.OnCompleted();
+    }
+
+    /// <summary>
+    /// Throw an <see cref="ObjectDisposedException"/> when the object is already disposed.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException">Thrown when the object has been disposed.</exception>
+    private void ThrowIfDisposed()
+    {
+        if (disposed)
+        {
+            throw new ObjectDisposedException(GetType().FullName);
+        }
     }
 }
