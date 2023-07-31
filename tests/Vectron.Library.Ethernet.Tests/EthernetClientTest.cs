@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -11,6 +12,40 @@ namespace Vectron.Library.Ethernet.Tests;
 [TestClass]
 public class EthernetClientTest
 {
+    [TestMethod]
+    public async Task ClientCanBeReconnectedMultipleTimes()
+    {
+        var localIp = TestHelpers.GetLocalIPAddress();
+        var serverSettings = TestHelpers.CreateOptions<EthernetServerOptions>(options =>
+        {
+            options.IpAddress = localIp;
+            options.Port = 2004;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
+        using var ethernetServer = new EthernetServer(serverSettings, NullLogger<EthernetServer>.Instance);
+
+        var clientSettings = TestHelpers.CreateOptions<EthernetClientOptions>(options =>
+        {
+            options.IpAddress = localIp;
+            options.Port = 2004;
+            options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
+        });
+        using var ethernetClient = new EthernetClient(clientSettings, NullLogger<EthernetClient>.Instance);
+
+        ethernetServer.Open();
+
+        for (var i = 0; i < 3; i++)
+        {
+            _ = await ethernetClient.ConnectAsync();
+            Assert.IsTrue(ethernetClient.IsConnected, "Client connected");
+            await TestHelpers.WaitForPredicate(() => ethernetServer.Clients.Take(2).Count() == 1, TimeSpan.FromSeconds(1), $"Server did not get a connection; iteration: {i.ToString(CultureInfo.InvariantCulture)}");
+
+            await ethernetClient.CloseAsync();
+            Assert.IsFalse(ethernetClient.IsConnected, "Client still connected connected");
+            await TestHelpers.WaitForPredicate(() => ethernetServer.Clients.Any(), TimeSpan.FromSeconds(1), $"Server did not get a disconnection; iteration: {i.ToString(CultureInfo.InvariantCulture)}");
+        }
+    }
+
     /// <summary>
     /// Test if the client connects to the server.
     /// </summary>
