@@ -37,14 +37,12 @@ public class EthernetClientTest
 
         ethernetServer.Open();
         _ = await ethernetClient.ConnectAsync();
-
         Assert.IsTrue(ethernetClient.IsConnected, "Client connected");
-        await Task.Delay(10);
-        Assert.IsTrue(ethernetServer.Clients.Take(2).Count() == 1, "Client count is not 1");
+        await TestHelpers.WaitForPredicate(() => ethernetServer.Clients.Take(2).Count() == 1, TimeSpan.FromSeconds(1), "Server did not get a connection");
+
         await ethernetClient.CloseAsync();
         Assert.IsFalse(ethernetClient.IsConnected, "Client still connected connected");
-        await Task.Delay(10);
-        Assert.IsFalse(ethernetServer.Clients.Any(), "Client count is not 0");
+        await TestHelpers.WaitForPredicate(() => ethernetServer.Clients.Any(), TimeSpan.FromSeconds(1), "Server did not get a disconnection");
     }
 
     /// <summary>
@@ -114,7 +112,7 @@ public class EthernetClientTest
         _ = await ethernetClient.ConnectAsync();
 
         var task1 = ethernetClient.ReceivedDataStream.Timeout(TimeSpan.FromSeconds(2)).FirstAsync().ToTask();
-        await Task.Delay(10);
+        await TestHelpers.WaitForPredicate(() => ethernetServer.Clients.Take(2).Count() == 1, TimeSpan.FromSeconds(1), "Server did not get a connection");
         await ethernetServer.BroadCastAsync(testMessage);
         var results = await task1;
 
@@ -155,7 +153,7 @@ public class EthernetClientTest
         var task3 = ethernetClient.ReceivedDataStream.Timeout(TimeSpan.FromSeconds(2)).FirstAsync().ToTask();
         var task4 = ethernetClient.ReceivedDataStream.Timeout(TimeSpan.FromSeconds(2)).FirstAsync().ToTask();
 
-        await Task.Delay(10);
+        await TestHelpers.WaitForPredicate(() => ethernetServer.Clients.Take(2).Count() == 1, TimeSpan.FromSeconds(1), "Server did not get a connection");
         await ethernetServer.BroadCastAsync(testMessage);
         var results = await Task.WhenAll(task1, task2, task3, task4);
 

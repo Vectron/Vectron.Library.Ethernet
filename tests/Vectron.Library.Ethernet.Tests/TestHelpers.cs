@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 using Microsoft.Extensions.Options;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Vectron.Library.Ethernet.Tests;
 
@@ -45,5 +46,15 @@ internal static class TestHelpers
         }
 
         throw new NotSupportedException("No network adapters with an IPv4 address in the system!");
+    }
+
+    public static async Task WaitForPredicate(Func<bool> predicate, TimeSpan timeout, string timeoutMessage)
+    {
+        using var cts = new CancellationTokenSource(timeout);
+        while (!predicate())
+        {
+            Assert.IsFalse(cts.Token.IsCancellationRequested, timeoutMessage);
+            await Task.Delay(10, CancellationToken.None).ConfigureAwait(false);
+        }
     }
 }
