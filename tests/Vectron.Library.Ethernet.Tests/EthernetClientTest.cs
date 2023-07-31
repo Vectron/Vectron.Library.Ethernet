@@ -44,7 +44,7 @@ public class EthernetClientTest
         await ethernetClient.CloseAsync();
         Assert.IsFalse(ethernetClient.IsConnected, "Client still connected connected");
         await Task.Delay(10);
-        Assert.IsTrue(ethernetServer.Clients.Any(), "Client count is not 0");
+        Assert.IsFalse(ethernetServer.Clients.Any(), "Client count is not 0");
     }
 
     /// <summary>
