@@ -136,7 +136,7 @@ public partial class EthernetConnection : IEthernetConnection, IDisposable
         while (!cancellationToken.IsCancellationRequested)
         {
             var bytesRead = await RawSocket.ReceiveAsync(receiveBuffer, SocketFlags.None, cancellationToken).ConfigureAwait(false);
-            if (bytesRead < 0)
+            if (bytesRead <= 0)
             {
                 RemoteRequestedClose(remoteEndPoint);
                 observer.OnCompleted();
