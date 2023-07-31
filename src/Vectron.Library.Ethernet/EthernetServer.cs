@@ -13,7 +13,7 @@ namespace Vectron.Library.Ethernet;
 /// <summary>
 /// An Ethernet server implementation.
 /// </summary>
-public sealed partial class EthernetServer : IEthernetServer, IDisposable
+public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyncDisposable
 {
     private readonly List<IEthernetConnection> clients = new();
     private readonly ReaderWriterLockSlim clientsLock = new(LockRecursionPolicy.SupportsRecursion);
@@ -107,14 +107,17 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable
 
     /// <inheritdoc/>
     public void Dispose()
+        => DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+    /// <inheritdoc/>
+    public async ValueTask DisposeAsync()
     {
         if (disposed)
         {
             return;
         }
 
-        CloseAsync().GetAwaiter().GetResult();
-
+        await CloseAsync().ConfigureAwait(false);
         connectionStream.Dispose();
         clientsLock.Dispose();
         rawSocket.Dispose();
