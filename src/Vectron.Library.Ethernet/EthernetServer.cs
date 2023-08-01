@@ -134,18 +134,11 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
             return;
         }
 
-        try
-        {
             cancellationTokenSource?.Dispose();
             cancellationTokenSource = new CancellationTokenSource();
             var endpoint = new IPEndPoint(IPAddress.Parse(settings.IpAddress), settings.Port);
             listenTask = ListenForClient(endpoint, cancellationTokenSource.Token);
         }
-        catch (SocketException ex)
-        {
-            FailedToListen(settings.IpAddress, settings.Port, ex.Message);
-        }
-    }
 
     private void EthernetConnection_ConnectionClosed(object? sender, EventArgs e)
     {
@@ -198,6 +191,10 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
         }
         catch (OperationCanceledException)
         {
+        }
+        catch (SocketException ex)
+        {
+            FailedToListen(endPoint, ex.Message);
         }
         finally
         {

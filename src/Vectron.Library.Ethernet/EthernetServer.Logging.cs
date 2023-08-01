@@ -11,8 +11,8 @@ public partial class EthernetServer
     [LoggerMessage(EventId = 3, Level = LogLevel.Information, Message = "New client connected from: {EndPoint}")]
     private partial void ClientConnected(EndPoint? endPoint);
 
-    [LoggerMessage(EventId = 2, Level = LogLevel.Critical, Message = "Failed to Listen on: `{IpAddress}:{port}`, error: {ExceptionMessage}")]
-    private partial void FailedToListen(string ipAddress, int port, string exceptionMessage);
+    [LoggerMessage(EventId = 2, Level = LogLevel.Critical, Message = "Failed to Listen on: {EndPoint}, error: {ExceptionMessage}")]
+    private partial void FailedToListen(EndPoint? endPoint, string exceptionMessage);
 
     [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Started listening on: {EndPoint}")]
     private partial void StartListening(EndPoint? endPoint);
