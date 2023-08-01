@@ -42,7 +42,7 @@ public class EthernetClientTest
 
             await ethernetClient.CloseAsync();
             Assert.IsFalse(ethernetClient.IsConnected, "Client still connected connected");
-            await TestHelpers.WaitForPredicate(() => ethernetServer.Clients.Any(), TimeSpan.FromSeconds(1), $"Server did not get a disconnection; iteration: {i.ToString(CultureInfo.InvariantCulture)}");
+            await TestHelpers.WaitForPredicate(() => !ethernetServer.Clients.Any(), TimeSpan.FromSeconds(1), $"Server did not get a disconnection; iteration: {i.ToString(CultureInfo.InvariantCulture)}");
         }
     }
 
@@ -77,7 +77,7 @@ public class EthernetClientTest
 
         await ethernetClient.CloseAsync();
         Assert.IsFalse(ethernetClient.IsConnected, "Client still connected connected");
-        await TestHelpers.WaitForPredicate(() => ethernetServer.Clients.Any(), TimeSpan.FromSeconds(1), "Server did not get a disconnection");
+        await TestHelpers.WaitForPredicate(() => !ethernetServer.Clients.Any(), TimeSpan.FromSeconds(1), "Server did not get a disconnection");
     }
 
     /// <summary>
