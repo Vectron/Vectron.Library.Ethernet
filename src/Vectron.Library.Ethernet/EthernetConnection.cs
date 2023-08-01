@@ -52,7 +52,15 @@ public sealed partial class EthernetConnection : IEthernetConnection, IDisposabl
             return Task.CompletedTask;
         }
 
-        var endPoint = rawSocket.RemoteEndPoint;
+        EndPoint? endPoint = null;
+        try
+        {
+            endPoint = rawSocket.RemoteEndPoint;
+        }
+        catch (SocketException)
+        {
+        }
+
         receiveDataConnection.Dispose();
         rawSocket.Close();
         ConnectionClosed?.Invoke(this, EventArgs.Empty);
