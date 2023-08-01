@@ -19,7 +19,7 @@ public class EthernetServerTest
         var serverSettings = TestHelpers.CreateOptions<EthernetServerOptions>(options =>
         {
             options.IpAddress = string.Empty;
-            options.Port = 2100;
+            options.Port = 2103;
             options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
         });
 
@@ -73,7 +73,7 @@ public class EthernetServerTest
         var serverSettings = TestHelpers.CreateOptions<EthernetServerOptions>(options =>
         {
             options.IpAddress = localIp;
-            options.Port = 2103;
+            options.Port = 2100;
             options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
         });
 
@@ -81,7 +81,7 @@ public class EthernetServerTest
         var clientSettings = TestHelpers.CreateOptions<EthernetClientOptions>(options =>
         {
             options.IpAddress = localIp;
-            options.Port = 2103;
+            options.Port = 2100;
             options.ProtocolType = System.Net.Sockets.ProtocolType.Tcp;
         });
         using var ethernetClient1 = new EthernetClient(clientSettings, NullLogger<EthernetClient>.Instance);
