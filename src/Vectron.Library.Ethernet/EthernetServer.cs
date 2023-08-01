@@ -57,7 +57,11 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
     public IObservable<IConnected<IEthernetConnection>> ConnectionStream => connectionStream.AsObservable();
 
     /// <inheritdoc/>
-    public bool IsListening => listenTask != null && !listenTask.IsCompleted;
+    public bool IsListening
+    {
+        get;
+        private set;
+    }
 
     /// <inheritdoc/>
     public Task BroadCastAsync(string message)
@@ -169,6 +173,7 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
             using var rawSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, settings.ProtocolType);
             rawSocket.Bind(endPoint);
             rawSocket.Listen(1000);
+            IsListening = true;
             StartListening(endPoint);
 
             while (!cancellationToken.IsCancellationRequested)
@@ -197,6 +202,7 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
         finally
         {
             StoppedListening(endPoint);
+            IsListening = false;
         }
     }
 
