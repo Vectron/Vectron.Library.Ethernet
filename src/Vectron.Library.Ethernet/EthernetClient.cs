@@ -66,10 +66,10 @@ public sealed partial class EthernetClient : IEthernetConnection, IEthernetClien
             var endpoint = new IPEndPoint(IPAddress.Parse(settings.IpAddress), settings.Port);
             StartingToConnect(endpoint);
             var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, settings.ProtocolType);
+            await clientSocket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
             ethernetConnection = new EthernetConnection(logger, clientSocket);
             ethernetConnection.ConnectionClosed += EthernetConnection_ConnectionClosed;
 
-            await clientSocket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
             ConnectedTo(endpoint);
         }
         catch (SocketException ex)
