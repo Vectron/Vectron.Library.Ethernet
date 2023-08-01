@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
 using System.Text;
@@ -112,17 +113,11 @@ public sealed partial class EthernetConnection : IEthernetConnection, IDisposabl
     private async Task ReceiveDataAsync(IObserver<ReceivedData> observer, CancellationToken cancellationToken)
     {
         ThrowIfDisposed();
-        while (!rawSocket.Connected
-            && !cancellationToken.IsCancellationRequested)
-        {
-            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-        }
-
         var receiveBuffer = new byte[BufferSize];
         using var rawBytes = new DisposableArrayPool<byte>();
         var remoteEndPoint = rawSocket.RemoteEndPoint;
 
-        while (!cancellationToken.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested && rawSocket.Connected)
         {
             var bytesRead = await rawSocket.ReceiveAsync(receiveBuffer, SocketFlags.None, cancellationToken).ConfigureAwait(false);
             if (bytesRead <= 0)
