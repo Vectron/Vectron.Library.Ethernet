@@ -94,14 +94,20 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
         cancellationTokenSource.Dispose();
         cancellationTokenSource = null;
 
-        clientsLock.EnterWriteLock();
+        clientsLock.EnterReadLock();
+        List<IEthernetConnection>? clone = null;
         try
         {
-            clients.Clear();
+            clone = new List<IEthernetConnection>(clients);
         }
         finally
         {
-            clientsLock.ExitWriteLock();
+            clientsLock.ExitReadLock();
+        }
+
+        if (clone != null && clone.Count > 0)
+        {
+            await Task.WhenAll(clone.Select(x => x.CloseAsync())).ConfigureAwait(false);
         }
     }
 
@@ -134,11 +140,11 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
             return;
         }
 
-            cancellationTokenSource?.Dispose();
-            cancellationTokenSource = new CancellationTokenSource();
-            var endpoint = new IPEndPoint(IPAddress.Parse(settings.IpAddress), settings.Port);
-            listenTask = ListenForClient(endpoint, cancellationTokenSource.Token);
-        }
+        cancellationTokenSource?.Dispose();
+        cancellationTokenSource = new CancellationTokenSource();
+        var endpoint = new IPEndPoint(IPAddress.Parse(settings.IpAddress), settings.Port);
+        listenTask = ListenForClient(endpoint, cancellationTokenSource.Token);
+    }
 
     private void EthernetConnection_ConnectionClosed(object? sender, EventArgs e)
     {
