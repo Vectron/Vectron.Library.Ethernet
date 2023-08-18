@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
 
 namespace Vectron.Library.Ethernet.Tests;
 
@@ -18,12 +19,16 @@ internal static class TestHelpers
     /// <param name="configure">Action for configuring the option.</param>
     /// <returns>The created <see cref="IOptions{TOptions}"/> instance.</returns>
     [ExcludeFromCodeCoverage]
-    public static IOptions<T> CreateOptions<T>(Action<T> configure)
+    public static IOptionsSnapshot<T> CreateOptions<T>(Action<T> configure)
         where T : class, new()
     {
         var instance = new T();
         configure(instance);
-        return Options.Create(instance);
+
+        var optionsMonitorMock = new Mock<IOptionsSnapshot<T>>();
+        optionsMonitorMock.Setup(o => o.Value).Returns(instance);
+        optionsMonitorMock.Setup(o => o.Get(It.IsAny<string>())).Returns(instance);
+        return optionsMonitorMock.Object;
     }
 
     /// <summary>

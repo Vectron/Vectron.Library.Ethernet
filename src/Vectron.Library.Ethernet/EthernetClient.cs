@@ -12,7 +12,7 @@ namespace Vectron.Library.Ethernet;
 public sealed partial class EthernetClient : IEthernetConnection, IEthernetClient, IDisposable, IAsyncDisposable
 {
     private readonly ILogger logger;
-    private readonly EthernetClientOptions settings;
+    private readonly IOptionsSnapshot<EthernetClientOptions> options;
     private bool disposed;
     private EthernetConnection? ethernetConnection;
 
@@ -21,10 +21,10 @@ public sealed partial class EthernetClient : IEthernetConnection, IEthernetClien
     /// </summary>
     /// <param name="options">The settings for configuring the <see cref="EthernetClient"/>.</param>
     /// <param name="logger">A <see cref="ILogger"/> instance.</param>
-    public EthernetClient(IOptions<EthernetClientOptions> options, ILogger<EthernetClient> logger)
+    public EthernetClient(IOptionsSnapshot<EthernetClientOptions> options, ILogger<EthernetClient> logger)
     {
+        this.options = options;
         this.logger = logger;
-        settings = options.Value;
     }
 
     /// <inheritdoc/>
@@ -55,6 +55,7 @@ public sealed partial class EthernetClient : IEthernetConnection, IEthernetClien
             return true;
         }
 
+        var settings = options.Get(name: null);
         try
         {
             if (ethernetConnection != null)

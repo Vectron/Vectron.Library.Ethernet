@@ -19,7 +19,7 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
     private readonly ReaderWriterLockSlim clientsLock = new(LockRecursionPolicy.SupportsRecursion);
     private readonly Subject<IConnected<IEthernetConnection>> connectionStream = new();
     private readonly ILogger<EthernetServer> logger;
-    private readonly EthernetServerOptions settings;
+    private readonly IOptionsSnapshot<EthernetServerOptions> options;
     private CancellationTokenSource? cancellationTokenSource;
     private bool disposed;
     private Task? listenTask;
@@ -29,10 +29,10 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
     /// </summary>
     /// <param name="options">The settings for configuring the <see cref="EthernetServer"/>.</param>
     /// <param name="logger">A <see cref="ILogger"/> instance.</param>
-    public EthernetServer(IOptions<EthernetServerOptions> options, ILogger<EthernetServer> logger)
+    public EthernetServer(IOptionsSnapshot<EthernetServerOptions> options, ILogger<EthernetServer> logger)
     {
+        this.options = options;
         this.logger = logger;
-        settings = options.Value;
     }
 
     /// <inheritdoc/>
@@ -140,10 +140,11 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
             return;
         }
 
+        var settings = options.Get(name: null);
         cancellationTokenSource?.Dispose();
         cancellationTokenSource = new CancellationTokenSource();
         var endpoint = new IPEndPoint(IPAddress.Parse(settings.IpAddress), settings.Port);
-        listenTask = ListenForClient(endpoint, cancellationTokenSource.Token);
+        listenTask = ListenForClient(endpoint, settings.ProtocolType, cancellationTokenSource.Token);
     }
 
     private void EthernetConnection_ConnectionClosed(object? sender, EventArgs e)
@@ -165,11 +166,11 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
         }
     }
 
-    private async Task ListenForClient(IPEndPoint endPoint, CancellationToken cancellationToken)
+    private async Task ListenForClient(IPEndPoint endPoint, ProtocolType protocolType, CancellationToken cancellationToken)
     {
         try
         {
-            using var rawSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, settings.ProtocolType);
+            using var rawSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, protocolType);
             rawSocket.Bind(endPoint);
             rawSocket.Listen(1000);
             IsListening = true;
