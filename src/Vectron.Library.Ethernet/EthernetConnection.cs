@@ -110,6 +110,10 @@ public sealed partial class EthernetConnection : IEthernetConnection, IDisposabl
     public Task SendAsync(string message)
         => SendAsync(Encoding.ASCII.GetBytes(message));
 
+    /// <inheritdoc/>
+    public override string ToString()
+        => $"Remote: {rawSocket.RemoteEndPoint}";
+
     private async Task ReceiveDataAsync(IObserver<ReceivedData> observer, CancellationToken cancellationToken)
     {
         ThrowIfDisposed();
