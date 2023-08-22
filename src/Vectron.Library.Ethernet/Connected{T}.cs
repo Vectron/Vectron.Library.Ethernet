@@ -13,7 +13,7 @@ public sealed class Connected<T> : IConnected<T>
     /// </summary>
     /// <param name="value">The object used for this connection.</param>
     /// <param name="state">The state of this connection.</param>
-    public Connected(T? value, bool state)
+    public Connected(T value, bool state)
     {
         Value = value;
         IsConnected = state;
@@ -27,7 +27,7 @@ public sealed class Connected<T> : IConnected<T>
     }
 
     /// <inheritdoc/>
-    public T? Value
+    public T Value
     {
         get;
     }
