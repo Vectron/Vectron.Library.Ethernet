@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace Vectron.Library.Ethernet;
 
 /// <summary>
@@ -11,7 +9,6 @@ public interface IConnected<out T>
     /// <summary>
     /// Gets a value indicating whether the connection is connected.
     /// </summary>
-    [MemberNotNullWhen(true, nameof(Value))]
     bool IsConnected
     {
         get;
@@ -20,7 +17,7 @@ public interface IConnected<out T>
     /// <summary>
     /// Gets the object used for this connection.
     /// </summary>
-    T? Value
+    T Value
     {
         get;
     }
