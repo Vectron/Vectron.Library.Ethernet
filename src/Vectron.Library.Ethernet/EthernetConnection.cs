@@ -14,7 +14,9 @@ public sealed partial class EthernetConnection : IEthernetConnection, IDisposabl
     private const int BufferSize = 1024;
     private readonly ILogger logger;
     private readonly Socket rawSocket;
+
     private readonly IDisposable receiveDataConnection;
+
     private bool disposed;
 
     /// <summary>
@@ -26,6 +28,8 @@ public sealed partial class EthernetConnection : IEthernetConnection, IDisposabl
     {
         this.logger = logger;
         rawSocket = socket;
+        RemoteEndPoint = socket.RemoteEndPoint;
+        LocalEndPoint = socket.LocalEndPoint;
         var publisher = Observable.Create<ReceivedData>(ReceiveDataAsync).Publish();
         ReceivedDataStream = publisher.AsObservable();
         receiveDataConnection = publisher.Connect();
@@ -39,10 +43,22 @@ public sealed partial class EthernetConnection : IEthernetConnection, IDisposabl
         => rawSocket != null && rawSocket.Connected;
 
     /// <inheritdoc/>
+    public EndPoint? LocalEndPoint
+    {
+        get;
+    }
+
+    /// <inheritdoc/>
     public IObservable<ReceivedData> ReceivedDataStream
     {
         get;
         private set;
+    }
+
+    /// <inheritdoc/>
+    public EndPoint? RemoteEndPoint
+    {
+        get;
     }
 
     /// <inheritdoc/>
@@ -112,7 +128,7 @@ public sealed partial class EthernetConnection : IEthernetConnection, IDisposabl
 
     /// <inheritdoc/>
     public override string ToString()
-        => $"Remote: {rawSocket.RemoteEndPoint}";
+        => $"Local: {LocalEndPoint}; Remote: {RemoteEndPoint}";
 
     private async Task ReceiveDataAsync(IObserver<ReceivedData> observer, CancellationToken cancellationToken)
     {

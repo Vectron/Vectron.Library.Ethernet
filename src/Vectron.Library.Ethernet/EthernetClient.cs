@@ -34,7 +34,13 @@ public sealed partial class EthernetClient : IEthernetConnection, IEthernetClien
     public bool IsConnected => ethernetConnection != null && ethernetConnection.IsConnected;
 
     /// <inheritdoc/>
+    public EndPoint? LocalEndPoint => ethernetConnection?.LocalEndPoint;
+
+    /// <inheritdoc/>
     public IObservable<ReceivedData> ReceivedDataStream => ethernetConnection == null ? Observable.Empty<ReceivedData>() : ethernetConnection.ReceivedDataStream;
+
+    /// <inheritdoc/>
+    public EndPoint? RemoteEndPoint => ethernetConnection?.RemoteEndPoint;
 
     /// <inheritdoc/>
     public Task CloseAsync()

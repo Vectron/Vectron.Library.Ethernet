@@ -1,3 +1,6 @@
+using System.Net;
+using System.Net.Sockets;
+
 namespace Vectron.Library.Ethernet;
 
 /// <summary>
@@ -18,10 +21,22 @@ public interface IEthernetConnection
         get;
     }
 
+    /// <inheritdoc cref="Socket.LocalEndPoint"/>
+    EndPoint? LocalEndPoint
+    {
+        get;
+    }
+
     /// <summary>
     /// Gets the stream with decoded received data.
     /// </summary>
     IObservable<ReceivedData> ReceivedDataStream
+    {
+        get;
+    }
+
+    /// <inheritdoc cref="Socket.RemoteEndPoint"/>
+    EndPoint? RemoteEndPoint
     {
         get;
     }
