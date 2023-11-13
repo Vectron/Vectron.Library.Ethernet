@@ -49,7 +49,7 @@ internal static class TestHelpers
         }
         catch (SocketException)
         {
-            return "127.0.0.1";
+            return IPAddress.Loopback.ToString();
         }
     }
 
