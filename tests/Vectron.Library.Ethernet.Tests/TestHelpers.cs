@@ -41,16 +41,9 @@ internal static class TestHelpers
     [ExcludeFromCodeCoverage]
     public static string GetLocalIPAddress()
     {
-        var host = Dns.GetHostEntry(Dns.GetHostName());
-        foreach (var ip in host.AddressList)
-        {
-            if (ip.AddressFamily == AddressFamily.InterNetwork)
-            {
-                return ip.ToString();
-            }
-        }
-
-        throw new NotSupportedException("No network adapters with an IPv4 address in the system!");
+        var address = Dns.GetHostAddresses(string.Empty, AddressFamily.InterNetwork).FirstOrDefault()
+            ?? throw new NotSupportedException("No network adapters with an IPv4 address in the system!");
+        return address.ToString();
     }
 
     public static async Task WaitForPredicate(Func<bool> predicate, TimeSpan timeout, string timeoutMessage)
