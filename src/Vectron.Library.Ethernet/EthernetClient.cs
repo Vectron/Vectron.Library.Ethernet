@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
@@ -21,6 +22,7 @@ public sealed partial class EthernetClient : IEthernetConnection, IEthernetClien
     /// </summary>
     /// <param name="options">The settings for configuring the <see cref="EthernetClient"/>.</param>
     /// <param name="logger">A <see cref="ILogger"/> instance.</param>
+    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "Logging source generator does not support primary constructor")]
     public EthernetClient(IOptionsSnapshot<EthernetClientOptions> options, ILogger<EthernetClient> logger)
     {
         this.options = options;
@@ -54,6 +56,7 @@ public sealed partial class EthernetClient : IEthernetConnection, IEthernetClien
     }
 
     /// <inheritdoc/>
+    [SuppressMessage("IDisposableAnalyzers.Correctness", "IDISP001:Dispose created", Justification = "The disposable is captured in class")]
     public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
     {
         if (IsConnected)
@@ -132,10 +135,15 @@ public sealed partial class EthernetClient : IEthernetConnection, IEthernetClien
                         => ConnectionClosed?.Invoke(this, e);
 
     private void ThrowIfDisposed()
+#if NET7_0_OR_GREATER
+        => ObjectDisposedException.ThrowIf(disposed, this);
+#else
     {
         if (disposed)
         {
             throw new ObjectDisposedException(GetType().FullName);
         }
     }
+
+#endif
 }

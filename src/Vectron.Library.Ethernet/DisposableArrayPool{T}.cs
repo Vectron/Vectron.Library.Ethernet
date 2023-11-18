@@ -8,7 +8,9 @@ namespace Vectron.Library.Ethernet;
 /// <typeparam name="T">The type to store.</typeparam>
 internal sealed class DisposableArrayPool<T> : IDisposable
 {
-    private T[] data = Array.Empty<T>();
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1010:Opening square brackets should be spaced correctly", Justification = "Style cop hasn't caught up yet.")]
+    private T[] data = [];
+
     private bool disposed;
 
     /// <summary>
@@ -40,12 +42,13 @@ internal sealed class DisposableArrayPool<T> : IDisposable
     /// <summary>
     /// Clears the data.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1010:Opening square brackets should be spaced correctly", Justification = "Style cop hasn't caught up yet.")]
     public void Clear()
     {
         ThrowIfDisposed();
         Data = default;
         ArrayPool<T>.Shared.Return(data, clearArray: false);
-        data = Array.Empty<T>();
+        data = [];
     }
 
     /// <inheritdoc/>
@@ -61,10 +64,15 @@ internal sealed class DisposableArrayPool<T> : IDisposable
     }
 
     private void ThrowIfDisposed()
+#if NET7_0_OR_GREATER
+        => ObjectDisposedException.ThrowIf(disposed, this);
+#else
     {
         if (disposed)
         {
             throw new ObjectDisposedException(GetType().FullName);
         }
     }
+
+#endif
 }

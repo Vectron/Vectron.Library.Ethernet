@@ -166,10 +166,15 @@ public sealed partial class EthernetConnection : IEthernetConnection, IDisposabl
     /// </summary>
     /// <exception cref="ObjectDisposedException">Thrown when the object has been disposed.</exception>
     private void ThrowIfDisposed()
+#if NET7_0_OR_GREATER
+        => ObjectDisposedException.ThrowIf(disposed, this);
+#else
     {
         if (disposed)
         {
             throw new ObjectDisposedException(GetType().FullName);
         }
     }
+
+#endif
 }
