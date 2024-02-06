@@ -77,7 +77,11 @@ public sealed partial class EthernetServer(IOptionsSnapshot<EthernetServerOption
             return;
         }
 
+#if NET8_0_OR_GREATER
+        await cancellationTokenSource.CancelAsync().ConfigureAwait(false);
+#else
         cancellationTokenSource.Cancel();
+#endif
         await listenTask.ConfigureAwait(false);
         listenTask.Dispose();
         listenTask = null;
