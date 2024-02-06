@@ -37,16 +37,10 @@ internal sealed partial class EthernetHost : BackgroundService
     {
         ethernetServer.Open();
         sessionStream?.Dispose();
-        sessionStream = ethernetServer.ConnectionStream.Subscribe(async x => await OnClient(x).ConfigureAwait(false));
+        sessionStream = ethernetServer.ConnectionStream.Subscribe(connection => ClientStateChanged(connection.IsConnected));
         return Task.CompletedTask;
     }
 
     [LoggerMessage(EventId = 4, Level = LogLevel.Information, Message = "Client state changed {IsConnected}")]
     private partial void ClientStateChanged(bool isConnected);
-
-    private async Task OnClient(IConnected<IEthernetConnection> connection)
-    {
-        await Task.Delay(5000).ConfigureAwait(false);
-        ClientStateChanged(connection.IsConnected);
-    }
 }
