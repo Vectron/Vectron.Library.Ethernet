@@ -56,15 +56,21 @@ public sealed partial class EthernetClient : IEthernetConnection, IEthernetClien
     }
 
     /// <inheritdoc/>
-    [SuppressMessage("IDisposableAnalyzers.Correctness", "IDISP001:Dispose created", Justification = "The disposable is captured in class")]
-    public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
+    public Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
+    {
+        var settings = options.Get(name: null);
+        var endpoint = new IPEndPoint(IPAddress.Parse(settings.IpAddress), settings.Port);
+        return ConnectAsync(endpoint, settings.ProtocolType, cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> ConnectAsync(IPEndPoint endpoint, ProtocolType protocolType, CancellationToken cancellationToken = default)
     {
         if (IsConnected)
         {
             return true;
         }
 
-        var settings = options.Get(name: null);
         try
         {
             if (ethernetConnection != null)
@@ -73,9 +79,8 @@ public sealed partial class EthernetClient : IEthernetConnection, IEthernetClien
                 ethernetConnection = null;
             }
 
-            var endpoint = new IPEndPoint(IPAddress.Parse(settings.IpAddress), settings.Port);
             StartingToConnect(endpoint);
-            var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, settings.ProtocolType);
+            var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, protocolType);
             await clientSocket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
             ethernetConnection = new EthernetConnection(logger, clientSocket);
             ethernetConnection.ConnectionClosed += EthernetConnection_ConnectionClosed;
@@ -84,7 +89,7 @@ public sealed partial class EthernetClient : IEthernetConnection, IEthernetClien
         }
         catch (SocketException ex)
         {
-            FailedToConnect(settings.IpAddress, settings.Port, ex.Message);
+            FailedToConnect(endpoint.Address.ToString(), endpoint.Port, ex.Message);
         }
 
         return IsConnected;

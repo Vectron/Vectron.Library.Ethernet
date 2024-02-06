@@ -1,3 +1,6 @@
+using System.Net;
+using System.Net.Sockets;
+
 namespace Vectron.Library.Ethernet;
 
 /// <summary>
@@ -48,6 +51,13 @@ public interface IEthernetServer
     /// </summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     Task CloseAsync();
+
+    /// <summary>
+    /// Start listening for connections.
+    /// </summary>
+    /// <param name="endPoint">The <see cref="IPEndPoint"/> to listen on.</param>
+    /// <param name="protocolType">The <see cref="ProtocolType"/> to use.</param>
+    void Open(IPEndPoint endPoint, ProtocolType protocolType);
 
     /// <summary>
     /// Start listening for connections.

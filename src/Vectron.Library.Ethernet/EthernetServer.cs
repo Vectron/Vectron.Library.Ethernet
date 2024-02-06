@@ -138,17 +138,23 @@ public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyn
     /// <inheritdoc/>
     public void Open()
     {
+        var settings = options.Get(name: null);
+        var endPoint = new IPEndPoint(IPAddress.Parse(settings.IpAddress), settings.Port);
+        Open(endPoint, settings.ProtocolType);
+    }
+
+    /// <inheritdoc/>
+    public void Open(IPEndPoint endPoint, ProtocolType protocolType)
+    {
         ThrowIfDisposed();
         if (IsListening)
         {
             return;
         }
 
-        var settings = options.Get(name: null);
         cancellationTokenSource?.Dispose();
         cancellationTokenSource = new CancellationTokenSource();
-        var endpoint = new IPEndPoint(IPAddress.Parse(settings.IpAddress), settings.Port);
-        listenTask = ListenForClient(endpoint, settings.ProtocolType, cancellationTokenSource.Token);
+        listenTask = ListenForClient(endPoint, protocolType, cancellationTokenSource.Token);
     }
 
     private void EthernetConnection_ConnectionClosed(object? sender, EventArgs e)
