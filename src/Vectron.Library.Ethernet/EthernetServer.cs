@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Data;
-using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
@@ -14,30 +13,18 @@ namespace Vectron.Library.Ethernet;
 /// <summary>
 /// An Ethernet server implementation.
 /// </summary>
-public sealed partial class EthernetServer : IEthernetServer, IDisposable, IAsyncDisposable
+/// <param name="options">The settings for configuring the <see cref="EthernetServer"/>.</param>
+/// <param name="logger">A <see cref="ILogger"/> instance.</param>
+public sealed partial class EthernetServer(IOptionsSnapshot<EthernetServerOptions> options, ILogger<EthernetServer> logger) : IEthernetServer, IDisposable, IAsyncDisposable
 {
-    [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1010:Opening square brackets should be spaced correctly", Justification = "Style cop hasn't caught up yet.")]
     private readonly List<IEthernetConnection> clients = [];
 
     private readonly ReaderWriterLockSlim clientsLock = new(LockRecursionPolicy.SupportsRecursion);
     private readonly Subject<IConnected<IEthernetConnection>> connectionStream = new();
-    private readonly ILogger<EthernetServer> logger;
-    private readonly IOptionsSnapshot<EthernetServerOptions> options;
+    private readonly ILogger<EthernetServer> logger = logger;
     private CancellationTokenSource? cancellationTokenSource;
     private bool disposed;
     private Task? listenTask;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EthernetServer"/> class.
-    /// </summary>
-    /// <param name="options">The settings for configuring the <see cref="EthernetServer"/>.</param>
-    /// <param name="logger">A <see cref="ILogger"/> instance.</param>
-    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "Logging source generator does not support primary constructor")]
-    public EthernetServer(IOptionsSnapshot<EthernetServerOptions> options, ILogger<EthernetServer> logger)
-    {
-        this.options = options;
-        this.logger = logger;
-    }
 
     /// <inheritdoc/>
     public IEnumerable<IEthernetConnection> Clients

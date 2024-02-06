@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
@@ -10,24 +9,13 @@ namespace Vectron.Library.Ethernet;
 /// <summary>
 /// Default implementation of <see cref="IEthernetClient"/>.
 /// </summary>
-public sealed partial class EthernetClient : IEthernetConnection, IEthernetClient, IDisposable, IAsyncDisposable
+/// <param name="options">The settings for configuring the <see cref="EthernetClient"/>.</param>
+/// <param name="logger">A <see cref="ILogger"/> instance.</param>
+public sealed partial class EthernetClient(IOptionsSnapshot<EthernetClientOptions> options, ILogger<EthernetClient> logger) : IEthernetConnection, IEthernetClient, IDisposable, IAsyncDisposable
 {
-    private readonly ILogger logger;
-    private readonly IOptionsSnapshot<EthernetClientOptions> options;
+    private readonly ILogger logger = logger;
     private bool disposed;
     private EthernetConnection? ethernetConnection;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EthernetClient"/> class.
-    /// </summary>
-    /// <param name="options">The settings for configuring the <see cref="EthernetClient"/>.</param>
-    /// <param name="logger">A <see cref="ILogger"/> instance.</param>
-    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "Logging source generator does not support primary constructor")]
-    public EthernetClient(IOptionsSnapshot<EthernetClientOptions> options, ILogger<EthernetClient> logger)
-    {
-        this.options = options;
-        this.logger = logger;
-    }
 
     /// <inheritdoc/>
     public event EventHandler? ConnectionClosed;

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -7,23 +6,12 @@ namespace Vectron.Library.Ethernet.Sandbox;
 /// <summary>
 /// A <see cref="BackgroundService"/> for opening an ethernet server.
 /// </summary>
-internal sealed partial class EthernetHost : BackgroundService
+/// <param name="logger">A <see cref="ILogger"/>.</param>
+/// <param name="ethernetServer">A <see cref="IEthernetServer"/>.</param>
+internal sealed partial class EthernetHost(ILogger<EthernetHost> logger, IEthernetServer ethernetServer) : BackgroundService
 {
-    private readonly IEthernetServer ethernetServer;
-    private readonly ILogger<EthernetHost> logger;
+    private readonly ILogger<EthernetHost> logger = logger;
     private IDisposable? sessionStream;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EthernetHost"/> class.
-    /// </summary>
-    /// <param name="logger">A <see cref="ILogger"/>.</param>
-    /// <param name="ethernetServer">A <see cref="IEthernetServer"/>.</param>
-    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "Logging source generator does not support primary constructor")]
-    public EthernetHost(ILogger<EthernetHost> logger, IEthernetServer ethernetServer)
-    {
-        this.logger = logger;
-        this.ethernetServer = ethernetServer;
-    }
 
     /// <inheritdoc/>
     public override void Dispose()
