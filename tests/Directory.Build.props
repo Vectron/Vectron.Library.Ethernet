@@ -2,7 +2,6 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
   <PropertyGroup>
-    <TargetFrameworks>net6; net7</TargetFrameworks>
     <NoWarn>$(NoWarn),1573,1591,1712</NoWarn>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
