@@ -31,6 +31,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{2D445ED5-4928-4A5B-927A-7DADBEAF6AF1}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\BuildTestDeploy.yml = .github\workflows\BuildTestDeploy.yml
+		.github\workflows\DependabotAutoMerge.yml = .github\workflows\DependabotAutoMerge.yml
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vectron.Library.Ethernet", "src\Vectron.Library.Ethernet\Vectron.Library.Ethernet.csproj", "{7BDC249E-366C-4009-8149-0BF60DC1F525}"
